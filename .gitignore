@@ -1,0 +1,6 @@
+./vscode
+*.txt
+*.bin
+main
+fornecidas.c
+estacoes.csv
