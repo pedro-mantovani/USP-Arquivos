@@ -1,6 +1,7 @@
 ./vscode
 *.txt
 *.bin
+*.js
 main
 fornecidas.c
 estacoes.csv

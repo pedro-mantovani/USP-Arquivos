@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "AVL.h"
 #include "registro.h"
 
 /*
@@ -71,14 +72,17 @@ int convert_num(char* str_num){
         return atoi(str_num);
 }
 
-void reg_to_bin(Registro* reg, FILE* fp){
+// Caso a posição passada seja -1 ele não faz o seek e coloca como append para otimização
+void reg_to_bin(Registro* reg, FILE* fp, int pos){
     char c;
     int x;
     char* s;
-    int bytes_lixo = 47;
-    char lixo = '$';
+    int bytes_lixo = 43;
 
     if (fp == NULL || reg == NULL) return;
+
+    if(pos != -1)
+        fseek(fp, pos, SEEK_SET);
 
     c = reg_get_removido(reg);
     fwrite(&c, sizeof(char), 1, fp);
@@ -120,17 +124,44 @@ void reg_to_bin(Registro* reg, FILE* fp){
     if (x > 0 && s != NULL)
         fwrite(s, sizeof(char), x, fp);
 
-    fwrite(&lixo, sizeof(char), bytes_lixo, fp);
+    char* lixo = malloc(sizeof(char)*bytes_lixo);
+    memset(lixo, '$', bytes_lixo);
+    fwrite(lixo, sizeof(char), bytes_lixo, fp);
+    free(lixo);
 }
 
-// Falta colocar o registro de cabeçalho
-void read_csv(FILE* fp_csv, FILE* fp_bin){
+void header_to_bin(FILE* fp, const Header* head){
+    if (fp == NULL || head == NULL) return;
+
+    fseek(fp, 0, SEEK_SET);
+
+    char status = header_get_status(head);
+    int topo = header_get_topo(head);
+    int proxRRN = header_get_proxRRN(head);
+    int nroEstacoes = header_get_nroEstacoes(head);
+    int nroPares = header_get_nroParesEstacao(head);
+
+    fwrite(&status, sizeof(char), 1, fp);
+    fwrite(&topo, sizeof(int), 1, fp);
+    fwrite(&proxRRN, sizeof(int), 1, fp);
+    fwrite(&nroEstacoes, sizeof(int), 1, fp);
+    fwrite(&nroPares, sizeof(int), 1, fp);
+}
+
+AVL* read_csv(FILE* fp_csv, FILE* fp_bin){
+
+    Header* head = criar_header();
+    header_to_bin(fp_bin, head);
+
     char linha[256];
     char *ptr;
     char *token;
     Registro* reg_temp = criar_registro();
 
-    if (fp_csv == NULL) return;
+    AVL* nomesEstacoes = AVL_criar();
+
+    int nroParesEstacao = 0;
+    if (fp_csv == NULL) return NULL;
 
     fgets(linha, sizeof(linha), fp_csv); // Queima a linha de cabeçalho
     
@@ -141,6 +172,7 @@ void read_csv(FILE* fp_csv, FILE* fp_bin){
         token = strsep(&ptr, ",");
         reg_set_tamNomeEstacao(reg_temp, strlen(token));
         reg_set_nomeEstacao(reg_temp, token);
+        AVL_inserir(nomesEstacoes, token);
 
         reg_set_codLinha(reg_temp, convert_num(strsep(&ptr, ",")));
 
@@ -152,7 +184,17 @@ void read_csv(FILE* fp_csv, FILE* fp_bin){
         reg_set_codLinhaIntegra(reg_temp, convert_num(strsep(&ptr, ",")));
         reg_set_codEstIntegra(reg_temp, convert_num(strsep(&ptr, ",")));
 
-        reg_to_bin(reg_temp, fp_bin);
+        nroParesEstacao ++;
+        reg_to_bin(reg_temp, fp_bin, -1);
     }
+
+    header_set_nroEstacoes(head, AVL_tamanho(nomesEstacoes));
+    header_set_nroParesEstacao(head, nroParesEstacao);
+    header_set_proxRRN(head, nroParesEstacao);
+    header_set_status(head, '1');
+    header_to_bin(fp_bin, head);
     reg_free(&reg_temp);
+    head_free(&head);
+    fclose(fp_csv);
+    return nomesEstacoes;
 }

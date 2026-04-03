@@ -36,7 +36,7 @@ Registro* criar_registro(){
         printf("Erro ao alocar memória\n");
         return NULL;
     }
-    reg->removido = 0;
+    reg->removido = '0';
     reg->proximo = -1;
     reg->codEstacao = -1;
     reg->codLinha = -1;
@@ -52,6 +52,23 @@ Registro* criar_registro(){
     return reg;
 }
 
+Header* criar_header(){
+    Header* head = malloc(sizeof(Header));
+    if(head == NULL){
+        printf("Erro ao alocar memória\n");
+        return NULL;
+    }
+    
+    head->status = '0';
+    head->topo = -1;
+    head->proxRRN = 0;
+    head->nroEstacoes = 0;
+    head->nroParesEstacao = 0;
+    
+    return head;
+}
+
+// Funções de set dos registros
 void remover_registro(Registro* reg){
     if(reg == NULL) return;
     reg->removido = 1;
@@ -100,7 +117,7 @@ void reg_set_tamNomeEstacao(Registro* reg, int tamNomeEstacao){
 void reg_set_nomeEstacao(Registro* reg, char* nomeEstacao){
     if(reg == NULL) return;
 
-    free(reg->nomeEstacao); // evita vazamento
+    free(reg->nomeEstacao);
 
     if(nomeEstacao != NULL){
         reg->nomeEstacao = malloc(strlen(nomeEstacao) + 1);
@@ -128,7 +145,7 @@ void reg_set_nomeLinha(Registro* reg, char* nomeLinha){
     }
 }
 
-
+// Funções de get dos registros
 char reg_get_removido(Registro* reg){
     if(reg == NULL) return '\0';
     return reg->removido;
@@ -189,6 +206,58 @@ char* reg_get_nomeLinha(Registro* reg){
     return reg->nomeLinha;
 }
 
+// Funções de get do header
+char header_get_status(const Header* h){
+    if(h == NULL) return '0';
+    return h->status;
+}
+
+int header_get_topo(const Header* h){
+    if(h == NULL) return -1;
+    return h->topo;
+}
+
+int header_get_proxRRN(const Header* h){
+    if(h == NULL) return -1;
+    return h->proxRRN;
+}
+
+int header_get_nroEstacoes(const Header* h){
+    if(h == NULL) return -1;
+    return h->nroEstacoes;
+}
+
+int header_get_nroParesEstacao(const Header* h){
+    if(h == NULL) return -1;
+    return h->nroParesEstacao;
+}
+
+// Funções de set do header
+void header_set_status(Header* h, char status){
+    if(h == NULL) return;
+    h->status = status;
+}
+
+void header_set_topo(Header* h, int topo){
+    if(h == NULL) return;
+    h->topo = topo;
+}
+
+void header_set_proxRRN(Header* h, int proxRRN){
+    if(h == NULL) return;
+    h->proxRRN = proxRRN;
+}
+
+void header_set_nroEstacoes(Header* h, int nroEstacoes){
+    if(h == NULL) return;
+    h->nroEstacoes = nroEstacoes;
+}
+
+void header_set_nroParesEstacao(Header* h, int nroParesEstacao){
+    if(h == NULL) return;
+    h->nroParesEstacao = nroParesEstacao;
+}
+
 void print_reg(Registro* reg){
     if (reg == NULL) {
         printf("Registro NULL\n");
@@ -197,7 +266,7 @@ void print_reg(Registro* reg){
 
     printf("=== Registro ===\n");
 
-    printf("removido: %d\n", reg->removido);
+    printf("removido: %c\n", reg->removido);
     printf("proximo: %d\n", reg->proximo);
     printf("codEstacao: %d\n", reg->codEstacao);
     printf("codLinha: %d\n", reg->codLinha);
@@ -225,6 +294,12 @@ void reg_free(Registro** reg){
         free((*reg)->nomeLinha);
     free(*reg);
     *reg = NULL;
+}
+
+void head_free(Header** head){
+    if(*head == NULL) return;
+    free(*head);
+    *head = NULL;
 }
 
 Registro* ler_registro(FILE* f){

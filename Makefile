@@ -1,5 +1,5 @@
 all:
-	gcc main.c IO.c registro.c -o main -Wall
+	gcc main.c IO.c registro.c AVL.c -o main -Wall
 	./main
 
 run:
