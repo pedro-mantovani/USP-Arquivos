@@ -65,13 +65,6 @@ void ScanQuoteString(char *str) {
     }
 }
 
-int convert_num(char* str_num){
-    if(str_num == NULL || *str_num == '\0')
-        return -1;
-    else
-        return atoi(str_num);
-}
-
 // Caso a posição passada seja -1 ele não faz o seek e coloca como append para otimização
 void reg_to_bin(Registro* reg, FILE* fp, int pos){
     char c;
@@ -148,7 +141,14 @@ void header_to_bin(FILE* fp, const Header* head){
     fwrite(&nroPares, sizeof(int), 1, fp);
 }
 
-AVL* read_csv(FILE* fp_csv, FILE* fp_bin){
+int convert_num(char* str_num){
+    if(str_num == NULL || *str_num == '\0')
+        return -1;
+    else
+        return atoi(str_num);
+}
+
+void read_csv(FILE* fp_csv, FILE* fp_bin){
 
     Header* head = criar_header();
     header_to_bin(fp_bin, head);
@@ -156,18 +156,27 @@ AVL* read_csv(FILE* fp_csv, FILE* fp_bin){
     char linha[256];
     char *ptr;
     char *token;
+    char* codEstacao;
+    char* codProxEstacao;
+    char pair[21];
+
     Registro* reg_temp = criar_registro();
 
     AVL* nomesEstacoes = AVL_criar();
+    AVL* paresEstacoes = AVL_criar();
 
     int nroParesEstacao = 0;
-    if (fp_csv == NULL) return NULL;
+    if (fp_csv == NULL) return;
 
     fgets(linha, sizeof(linha), fp_csv); // Queima a linha de cabeçalho
     
     while (fgets(linha, sizeof(linha), fp_csv) != NULL) {
         ptr = linha;
-        reg_set_codEstacao(reg_temp, atoi(strsep(&ptr, ",")));
+        // Troca o \n por \0
+        linha[strcspn(linha, "\n") - 1] = '\0';
+        
+        codEstacao = strsep(&ptr, ",");
+        reg_set_codEstacao(reg_temp, atoi(codEstacao));
 
         token = strsep(&ptr, ",");
         reg_set_tamNomeEstacao(reg_temp, strlen(token));
@@ -179,7 +188,17 @@ AVL* read_csv(FILE* fp_csv, FILE* fp_bin){
         token = strsep(&ptr, ",");
         reg_set_tamNomeLinha(reg_temp, strlen(token));
         reg_set_nomeLinha(reg_temp, token);
-        reg_set_codProxEstacao(reg_temp, convert_num(strsep(&ptr, ",")));
+
+        codProxEstacao = strsep(&ptr, ",");
+        reg_set_codProxEstacao(reg_temp, convert_num(codProxEstacao));
+        // Salva em ordem lexográfica (menor, maior)
+        if (strcmp(codEstacao, codProxEstacao) < 0) {
+            snprintf(pair, sizeof(pair), "%s,%s", codEstacao, codProxEstacao);
+        } else {
+            snprintf(pair, sizeof(pair), "%s,%s", codProxEstacao, codEstacao);
+        }
+        AVL_inserir(paresEstacoes, pair);
+
         reg_set_distProxEstacao(reg_temp, convert_num(strsep(&ptr, ",")));
         reg_set_codLinhaIntegra(reg_temp, convert_num(strsep(&ptr, ",")));
         reg_set_codEstIntegra(reg_temp, convert_num(strsep(&ptr, ",")));
@@ -188,13 +207,14 @@ AVL* read_csv(FILE* fp_csv, FILE* fp_bin){
         reg_to_bin(reg_temp, fp_bin, -1);
     }
 
+    fclose(fp_csv);
+
     header_set_nroEstacoes(head, AVL_tamanho(nomesEstacoes));
-    header_set_nroParesEstacao(head, nroParesEstacao);
+    header_set_nroParesEstacao(head, AVL_tamanho(paresEstacoes));
     header_set_proxRRN(head, nroParesEstacao);
     header_set_status(head, '1');
     header_to_bin(fp_bin, head);
     reg_free(&reg_temp);
     head_free(&head);
-    fclose(fp_csv);
-    return nomesEstacoes;
+    fclose(fp_bin);
 }

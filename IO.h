@@ -8,6 +8,7 @@
     
     Registro* ler_registro(FILE* f);
 
-    AVL* read_csv(FILE* fp_csv, FILE* fp_bin);
+    void read_csv(FILE* fp_csv, FILE* fp_bin);
+    void BinarioNaTela(char *arquivo);
 
 #endif
