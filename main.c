@@ -9,7 +9,7 @@ int main(){
     scanf("%d", &option);
     char arquivo_bin[100];
     switch (option){
-    case 1:
+    case 1: //leitura de registros csv e escrita em binário
         char arquivo_csv[100];
         scanf("%s", arquivo_csv);
         scanf("%s", arquivo_bin);
@@ -27,16 +27,25 @@ int main(){
         BinarioNaTela(arquivo_bin);
         break;
 
-    case 2:
+    case 2: //recuperacao de todos os registros do arquivo binário
         scanf("%s", arquivo_bin);
         select_all(arquivo_bin);
         break;
 
-    case 3:
-        scanf("%s", arquivo_bin); // estacoes.bin
+    case 3: //recuperacao de registros do arquivo binário por campo 
+        scanf("%s", arquivo_bin); 
         busca_parametrizada(arquivo_bin);
         break;
 
+    case 4: //remocao logica de registros
+        break;
+
+    case 5: //insercao de novos registros
+        break;
+
+    case 6: //atualizacao de registros
+        break;  
+        
     default:
         break;
     }
