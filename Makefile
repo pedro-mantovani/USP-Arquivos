@@ -1,6 +1,5 @@
 all:
 	make compile
-	./main
 
 run:
 	./main

@@ -14,7 +14,15 @@ int main(){
         scanf("%s", arquivo_csv);
         scanf("%s", arquivo_bin);
         FILE* fp_csv = fopen(arquivo_csv, "r");
+        if(fp_csv == NULL){
+            printf("Falha no processamento do arquivo.");
+            break;
+        }
         FILE* fp_bin = fopen(arquivo_bin, "wb");
+        if(fp_bin == NULL){
+            printf("Falha no processamento do arquivo.");
+            break;
+        }
         read_csv(fp_csv, fp_bin);
         BinarioNaTela(arquivo_bin);
         break;

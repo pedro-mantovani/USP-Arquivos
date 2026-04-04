@@ -156,14 +156,12 @@ void read_csv(FILE* fp_csv, FILE* fp_bin){
     char linha[256];
     char *ptr;
     char *token;
-    char* codEstacao;
-    char* codProxEstacao;
-    char pair[21];
+    int codProxEstacao;
+    int paresEstacoes = 0;
 
     Registro* reg_temp = criar_registro();
 
     AVL* nomesEstacoes = AVL_criar();
-    AVL* paresEstacoes = AVL_criar();
 
     int nroParesEstacao = 0;
     if (fp_csv == NULL) return;
@@ -175,8 +173,7 @@ void read_csv(FILE* fp_csv, FILE* fp_bin){
         // Troca o \n por \0
         linha[strcspn(linha, "\n") - 1] = '\0';
         
-        codEstacao = strsep(&ptr, ",");
-        reg_set_codEstacao(reg_temp, atoi(codEstacao));
+        reg_set_codEstacao(reg_temp, atoi(strsep(&ptr, ",")));
 
         token = strsep(&ptr, ",");
         reg_set_tamNomeEstacao(reg_temp, strlen(token));
@@ -189,15 +186,10 @@ void read_csv(FILE* fp_csv, FILE* fp_bin){
         reg_set_tamNomeLinha(reg_temp, strlen(token));
         reg_set_nomeLinha(reg_temp, token);
 
-        codProxEstacao = strsep(&ptr, ",");
-        reg_set_codProxEstacao(reg_temp, convert_num(codProxEstacao));
-        // Salva em ordem lexográfica (menor, maior)
-        if (strcmp(codEstacao, codProxEstacao) < 0) {
-            snprintf(pair, sizeof(pair), "%s,%s", codEstacao, codProxEstacao);
-        } else {
-            snprintf(pair, sizeof(pair), "%s,%s", codProxEstacao, codEstacao);
-        }
-        AVL_inserir(paresEstacoes, pair);
+        codProxEstacao = convert_num(strsep(&ptr, ","));
+        reg_set_codProxEstacao(reg_temp, codProxEstacao);
+        if(codProxEstacao != -1)
+            paresEstacoes ++;
 
         reg_set_distProxEstacao(reg_temp, convert_num(strsep(&ptr, ",")));
         reg_set_codLinhaIntegra(reg_temp, convert_num(strsep(&ptr, ",")));
@@ -210,7 +202,7 @@ void read_csv(FILE* fp_csv, FILE* fp_bin){
     fclose(fp_csv);
 
     header_set_nroEstacoes(head, AVL_tamanho(nomesEstacoes));
-    header_set_nroParesEstacao(head, AVL_tamanho(paresEstacoes));
+    header_set_nroParesEstacao(head, paresEstacoes);
     header_set_proxRRN(head, nroParesEstacao);
     header_set_status(head, '1');
     header_to_bin(fp_bin, head);
