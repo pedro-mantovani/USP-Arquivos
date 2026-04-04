@@ -306,3 +306,47 @@ Registro* ler_registro(FILE* f){
     Registro* reg = NULL;
     return reg;
 }
+
+//funcionalidade 2: escrever todos os registros do arquivo binário
+Registro* bin_to_reg(FILE* fp) {
+    if (fp == NULL) return NULL;
+
+    long pos_inicial = ftell(fp); // Guarda onde o registro começou
+    Registro* reg = criar_registro();
+    if (reg == NULL) return NULL;
+
+    // 1. Campos fixos iniciais (1 + 4 + 4 + 4 + 4 + 4 + 4 + 4 = 29 bytes)
+    if (fread(&(reg->removido), sizeof(char), 1, fp) != 1) {
+        reg_free(&reg);
+        return NULL;
+    }
+    fread(&(reg->proximo), sizeof(int), 1, fp);
+    fread(&(reg->codEstacao), sizeof(int), 1, fp);
+    fread(&(reg->codLinha), sizeof(int), 1, fp);
+    fread(&(reg->codProxEstacao), sizeof(int), 1, fp);
+    fread(&(reg->distProxEstacao), sizeof(int), 1, fp);
+    fread(&(reg->codLinhaIntegra), sizeof(int), 1, fp);
+    fread(&(reg->codEstIntegra), sizeof(int), 1, fp);
+
+    // 2. Nome Estação (Tamanho + String)
+    fread(&(reg->tamNomeEstacao), sizeof(int), 1, fp);
+    if (reg->tamNomeEstacao > 0) {
+        reg->nomeEstacao = (char*)malloc(reg->tamNomeEstacao + 1);
+        fread(reg->nomeEstacao, sizeof(char), reg->tamNomeEstacao, fp);
+        reg->nomeEstacao[reg->tamNomeEstacao] = '\0';
+    }
+
+    // 3. Nome Linha (Tamanho + String)
+    fread(&(reg->tamNomeLinha), sizeof(int), 1, fp);
+    if (reg->tamNomeLinha > 0) {
+        reg->nomeLinha = (char*)malloc(reg->tamNomeLinha + 1);
+        fread(reg->nomeLinha, sizeof(char), reg->tamNomeLinha, fp);
+        reg->nomeLinha[reg->tamNomeLinha] = '\0';
+    }
+
+    // 4. GARANTIA DOS 80 BYTES: Salta para o início do próximo registro
+    // Isso ignora o lixo '$' corretamente, não importa quantos bytes sobraram
+    fseek(fp, pos_inicial + 80, SEEK_SET);
+
+    return reg;
+}

@@ -55,11 +55,10 @@ void ScanQuoteString(char *str) {
             strcpy(str, "");
         }
         getchar();         // ignorar aspas fechando
-    } else if (R != EOF) { // vc tá tentando ler uma string que não tá entre
-                           // aspas! Fazer leitura normal %s então, pois deve
-                           // ser algum inteiro ou algo assim...
-        str[0] = R;
-        scanf("%s", &str[1]);
+    } else if (R != EOF) { 
+        //em vez de str[0] = R e scanf devolve o caractere para o buffer e le a palavra inteira
+        ungetc(R, stdin); 
+        scanf("%s", str);
     } else { // EOF
         strcpy(str, "");
     }
@@ -209,4 +208,166 @@ void read_csv(FILE* fp_csv, FILE* fp_bin){
     reg_free(&reg_temp);
     head_free(&head);
     fclose(fp_bin);
+}
+
+//funcionalidade 2: 
+
+void print_campo_int(int valor) {
+    if (valor == -1) printf("NULO");
+    else printf("%d", valor);
+}
+
+void print_campo_str(char* str) {
+    if (str == NULL || strlen(str) == 0) printf("NULO");
+    else printf("%s", str);
+}
+
+void select_all(char* nome_arquivo) {
+    FILE* fp = fopen(nome_arquivo, "rb");
+    if (fp == NULL) {
+        printf("Falha no processamento do arquivo.");
+        return;
+    }
+
+    // Verifica status de consistência no cabeçalho (byte 0)
+    char status;
+    fread(&status, sizeof(char), 1, fp);
+    if (status == '0') {
+        printf("Falha no processamento do arquivo.");
+        fclose(fp);
+        return;
+    }
+
+    // Pula o resto do cabeçalho para chegar no primeiro registro (17 bytes total)
+    fseek(fp, 17, SEEK_SET);
+
+    Registro* reg;
+    int encontrou_pelo_menos_um = 0;
+
+    // Loop de leitura sequencial
+    while ((reg = bin_to_reg(fp)) != NULL) {
+        // Ignora registros logicamente removidos
+        if (reg_get_removido(reg) == '0') {
+            encontrou_pelo_menos_um = 1;
+            
+            print_campo_int(reg_get_codEstacao(reg)); printf(" ");
+            print_campo_str(reg_get_nomeEstacao(reg)); printf(" ");
+            print_campo_int(reg_get_codLinha(reg)); printf(" ");
+            print_campo_str(reg_get_nomeLinha(reg)); printf(" ");
+            print_campo_int(reg_get_codProxEstacao(reg)); printf(" ");
+            print_campo_int(reg_get_distProxEstacao(reg)); printf(" ");
+            print_campo_int(reg_get_codLinhaIntegra(reg)); printf(" ");
+            print_campo_int(reg_get_codEstIntegra(reg));
+            printf("\n");
+        }
+        reg_free(&reg);
+    }
+
+    if (!encontrou_pelo_menos_um) {
+        printf("Registro inexistente.\n");
+    }
+
+    fclose(fp);
+}
+
+//funcionalidade 3: busca parametrizada
+
+void busca_parametrizada(char* nome_arquivo) {
+    FILE* fp = fopen(nome_arquivo, "rb");
+    if (fp == NULL) {
+        printf("Falha no processamento do arquivo."); 
+        return;
+    }
+
+    char status;
+    fread(&status, sizeof(char), 1, fp); 
+    if (status == '0') {
+        printf("Falha no processamento do arquivo."); 
+        fclose(fp);
+        return;
+    }
+
+    int n_buscas;
+    scanf("%d", &n_buscas); 
+
+    for (int b = 0; b < n_buscas; b++) {
+        int m_filtros;
+        scanf("%d", &m_filtros); 
+
+        // Arrays simples para guardar os filtros da busca atual
+        char nomes[m_filtros][50];
+        char valoresStr[m_filtros][100];
+        int valoresInt[m_filtros];
+
+        for (int i = 0; i < m_filtros; i++) {
+            scanf("%s", nomes[i]);
+            ScanQuoteString(valoresStr[i]); 
+            
+            // Se não for NULO, tentamos converter para int para facilitar
+            if (strcmp(valoresStr[i], "") != 0) {
+                valoresInt[i] = atoi(valoresStr[i]);
+            } else {
+                valoresInt[i] = -1; // Representação de NULO para inteiros 
+            }
+            //printf("Filtro %d: campo=%s, valor_str=%s, valor_int=%d\n", i+1, nomes[i], valoresStr[i], valoresInt[i]);
+        }
+
+        fseek(fp, 17, SEEK_SET); 
+        Registro* reg;
+        int encontrou_algum = 0;
+
+        while ((reg = bin_to_reg(fp)) != NULL) {
+            if (reg_get_removido(reg) == '0') { 
+                int bate_todos = 1;
+
+                for (int i = 0; i < m_filtros; i++) {
+                    int match = 0;
+                    // Comparações diretas
+                    if (strcmp(nomes[i], "codEstacao") == 0) {
+                        if (reg_get_codEstacao(reg) == valoresInt[i]) match = 1;
+                    } else if (strcmp(nomes[i], "nomeEstacao") == 0) {
+                        if (strcmp(reg_get_nomeEstacao(reg), valoresStr[i]) == 0) match = 1;
+                    } else if (strcmp(nomes[i], "codLinha") == 0) {
+                        if (reg_get_codLinha(reg) == valoresInt[i]) match = 1;
+                    } else if (strcmp(nomes[i], "nomeLinha") == 0) {
+                        if (strcmp(reg_get_nomeLinha(reg), valoresStr[i]) == 0) match = 1;
+                    } else if (strcmp(nomes[i], "codProxEstacao") == 0) {
+                        if (reg_get_codProxEstacao(reg) == valoresInt[i]) match = 1;
+                    } else if (strcmp(nomes[i], "distProxEstacao") == 0) {
+                        if (reg_get_distProxEstacao(reg) == valoresInt[i]) match = 1;
+                    } else if (strcmp(nomes[i], "codLinhaIntegra") == 0) {
+                        if (reg_get_codLinhaIntegra(reg) == valoresInt[i]) match = 1;
+                    } else if (strcmp(nomes[i], "codEstIntegra") == 0) {
+                        if (reg_get_codEstIntegra(reg) == valoresInt[i]) match = 1;
+                    }
+
+                    if (!match) {
+                        bate_todos = 0;
+                        break;
+                    }
+                }
+
+                if (bate_todos) {
+                    encontrou_algum = 1;
+                    print_campo_int(reg_get_codEstacao(reg)); printf(" ");
+                    print_campo_str(reg_get_nomeEstacao(reg)); printf(" ");
+                    print_campo_int(reg_get_codLinha(reg)); printf(" ");
+                    print_campo_str(reg_get_nomeLinha(reg)); printf(" ");
+                    print_campo_int(reg_get_codProxEstacao(reg)); printf(" ");
+                    print_campo_int(reg_get_distProxEstacao(reg)); printf(" ");
+                    print_campo_int(reg_get_codLinhaIntegra(reg)); printf(" ");
+                    print_campo_int(reg_get_codEstIntegra(reg));
+                    printf("\n");
+                }
+            }
+            reg_free(&reg);
+        }
+
+        if (!encontrou_algum) {
+            printf("Registro inexistente.\n"); 
+        }
+
+        printf("\n");
+    }
+    fclose(fp);
 }

@@ -8,6 +8,7 @@
     Header* criar_header();
 
     Registro* ler_registro(FILE* f);
+    Registro* bin_to_reg(FILE* fp);
 
     // Funções de get dos registros
     char reg_get_removido(Registro* reg);
