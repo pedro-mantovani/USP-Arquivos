@@ -37,9 +37,11 @@ int main(){
         busca_parametrizada(arquivo_bin);
         break;
 
-    case 4: //remocao logica de registros
-        break;
-
+    case 4: // DELETE LOGIC (PILHA) [cite: 252]
+            scanf("%s", arquivo_bin);
+            // A funcionalidade4 cuida da AVL, da Pilha e do Header final
+            remover(arquivo_bin);
+            break;
     case 5: //insercao de novos registros
         break;
 

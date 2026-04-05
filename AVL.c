@@ -301,3 +301,18 @@ bool AVL_remover(AVL* arv, char* chave){
     arv->tamanho--;
     return true;
 }
+
+// Retorna a quantidade de ocorrências registradas para uma chave
+int AVL_obter_quantidade(NO* raiz, char* chave) {
+    if (raiz == NULL) return 0;
+    int comp = strcmp(chave, raiz->chave);
+    if (comp == 0) return raiz->quantidade;
+    return (comp > 0) ? AVL_obter_quantidade(raiz->dir, chave) : AVL_obter_quantidade(raiz->esq, chave);
+}   
+
+// Função auxiliar para chamar a partir da struct AVL
+int AVL_quantidade_ocorencias(AVL* arv, char* chave) {
+    if (arv == NULL) return 0;
+    return AVL_obter_quantidade(arv->raiz, chave);
+}
+

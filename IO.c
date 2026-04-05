@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include "AVL.h"
 #include "registro.h"
+#include "busca.h"
 
 /*
 Funções relacionadas a entrada e saída
@@ -147,6 +148,7 @@ int convert_num(char* str_num){
         return atoi(str_num);
 }
 
+//funcionalidade 1: leitura de csv e escrita em binário
 void read_csv(FILE* fp_csv, FILE* fp_bin){
 
     Header* head = criar_header();
@@ -234,43 +236,53 @@ void print_campo_str(char* str) {
     else printf("%s", str);
 }
 
-void select_all(char* nome_arquivo) {
-    FILE* fp = fopen(nome_arquivo, "rb");
+//Função para verificar o status do arquivo antes de realizar buscas ou leituras
+int verificarStatusArquivo(FILE* fp) {
+
     if (fp == NULL) {
         printf("Falha no processamento do arquivo.");
-        return;
+        return 0;
     }
 
-    // Verifica status de consistência no cabeçalho (byte 0)
     char status;
     fread(&status, sizeof(char), 1, fp);
     if (status == '0') {
         printf("Falha no processamento do arquivo.");
         fclose(fp);
-        return;
+        return 0;
     }
+
+    return 1;
+}
+
+void print_registro(Registro* reg){
+    print_campo_int(reg_get_codEstacao(reg)); printf(" ");
+    print_campo_str(reg_get_nomeEstacao(reg)); printf(" ");
+    print_campo_int(reg_get_codLinha(reg)); printf(" ");
+    print_campo_str(reg_get_nomeLinha(reg)); printf(" ");
+    print_campo_int(reg_get_codProxEstacao(reg)); printf(" ");
+    print_campo_int(reg_get_distProxEstacao(reg)); printf(" ");
+    print_campo_int(reg_get_codLinhaIntegra(reg)); printf(" ");
+    print_campo_int(reg_get_codEstIntegra(reg));
+    printf("\n");
+}
+
+void select_all(char* nome_arquivo) {
+
+    FILE* fp = fopen(nome_arquivo, "rb");
+    // Verifica status de consistência no cabeçalho (byte 0)
+    if(!verificarStatusArquivo(fp)) return;
 
     // Pula o resto do cabeçalho para chegar no primeiro registro (17 bytes total)
     fseek(fp, 17, SEEK_SET);
 
     Registro* reg;
-    int encontrou_pelo_menos_um = 0;
-
-    // Loop de leitura sequencial
+    int encontrou_pelo_menos_um = 0; //controle para casa nao existam registro
     while ((reg = bin_to_reg(fp)) != NULL) {
-        // Ignora registros logicamente removidos
+        //ignora registros logicamente removidos ATENCAO NESSE IGNORA SE REALMENTE EH ISSO QUE QUEREM DIZR COM IGNORAR
         if (reg_get_removido(reg) == '0') {
             encontrou_pelo_menos_um = 1;
-            
-            print_campo_int(reg_get_codEstacao(reg)); printf(" ");
-            print_campo_str(reg_get_nomeEstacao(reg)); printf(" ");
-            print_campo_int(reg_get_codLinha(reg)); printf(" ");
-            print_campo_str(reg_get_nomeLinha(reg)); printf(" ");
-            print_campo_int(reg_get_codProxEstacao(reg)); printf(" ");
-            print_campo_int(reg_get_distProxEstacao(reg)); printf(" ");
-            print_campo_int(reg_get_codLinhaIntegra(reg)); printf(" ");
-            print_campo_int(reg_get_codEstIntegra(reg));
-            printf("\n");
+            print_registro(reg);
         }
         reg_free(&reg);
     }
@@ -291,105 +303,164 @@ void select_all(char* nome_arquivo) {
 
 void busca_parametrizada(char* nome_arquivo) {
     FILE* fp = fopen(nome_arquivo, "rb");
-    if (fp == NULL) {
-        printf("Falha no processamento do arquivo."); 
-        return;
-    }
+    if(!verificarStatusArquivo(fp)) return;
 
-    char status;
-    fread(&status, sizeof(char), 1, fp); 
-    if (status == '0') {
-        printf("Falha no processamento do arquivo."); 
+    int n_buscas;
+    if (scanf("%d", &n_buscas) != 1) {
         fclose(fp);
         return;
     }
 
-    int n_buscas;
-    scanf("%d", &n_buscas); 
-
-    for (int b = 0; b < n_buscas; b++) {
+    while (n_buscas--) {
         int m_filtros;
-        scanf("%d", &m_filtros); 
+        scanf("%d", &m_filtros);
 
-        // Arrays simples para guardar os filtros da busca atual
-        // Um malloc aqui nada a ver? - POO
-        char nomes[m_filtros][50];
-        char valoresStr[m_filtros][100];
-        int valoresInt[m_filtros];
+        /* Cria a estrutura de busca com m campos alocados dinamicamente */
+        Busca* b = criar_busca(m_filtros);
+        preencher_filtros(b);
 
-        for (int i = 0; i < m_filtros; i++) {
-            scanf("%s", nomes[i]);
-            ScanQuoteString(valoresStr[i]); 
-            
-            // Se não for NULO, tentamos converter para int para facilitar
-            if (strcmp(valoresStr[i], "") != 0) {
-                valoresInt[i] = atoi(valoresStr[i]);
-            } else {
-                valoresInt[i] = -1; // Representação de NULO para inteiros 
-            }
-            //printf("Filtro %d: campo=%s, valor_str=%s, valor_int=%d\n", i+1, nomes[i], valoresStr[i], valoresInt[i]);
-        }
-
-        fseek(fp, 17, SEEK_SET); 
+        fseek(fp, 17, SEEK_SET); // Volta ao início dos dados (após o header de 17 bytes)
         Registro* reg;
-        int encontrou_algum = 0;
+        int encontrou = 0;
 
         while ((reg = bin_to_reg(fp)) != NULL) {
-            if (reg_get_removido(reg) == '0') { 
-                int bate_todos = 1;
-
-                for (int i = 0; i < m_filtros; i++) {
-                    int match = 0;
-                    // Comparações diretas
-                    if (strcmp(nomes[i], "codEstacao") == 0) {
-                        if (reg_get_codEstacao(reg) == valoresInt[i]) match = 1;
-                    } else if (strcmp(nomes[i], "nomeEstacao") == 0) {
-                        if (strcmp(reg_get_nomeEstacao(reg), valoresStr[i]) == 0) match = 1;
-                    } else if (strcmp(nomes[i], "codLinha") == 0) {
-                        if (reg_get_codLinha(reg) == valoresInt[i]) match = 1;
-                    } else if (strcmp(nomes[i], "nomeLinha") == 0) {
-                        if (strcmp(reg_get_nomeLinha(reg), valoresStr[i]) == 0) match = 1;
-                    } else if (strcmp(nomes[i], "codProxEstacao") == 0) {
-                        if (reg_get_codProxEstacao(reg) == valoresInt[i]) match = 1;
-                    } else if (strcmp(nomes[i], "distProxEstacao") == 0) {
-                        if (reg_get_distProxEstacao(reg) == valoresInt[i]) match = 1;
-                    } else if (strcmp(nomes[i], "codLinhaIntegra") == 0) {
-                        if (reg_get_codLinhaIntegra(reg) == valoresInt[i]) match = 1;
-                    } else if (strcmp(nomes[i], "codEstIntegra") == 0) {
-                        if (reg_get_codEstIntegra(reg) == valoresInt[i]) match = 1;
-                    }
-
-                    if (!match) {
-                        bate_todos = 0;
-                        break;
-                    }
-                }
-
-                if (bate_todos) {
-                    encontrou_algum = 1;
-                    print_campo_int(reg_get_codEstacao(reg)); printf(" ");
-                    print_campo_str(reg_get_nomeEstacao(reg)); printf(" ");
-                    print_campo_int(reg_get_codLinha(reg)); printf(" ");
-                    print_campo_str(reg_get_nomeLinha(reg)); printf(" ");
-                    print_campo_int(reg_get_codProxEstacao(reg)); printf(" ");
-                    print_campo_int(reg_get_distProxEstacao(reg)); printf(" ");
-                    print_campo_int(reg_get_codLinhaIntegra(reg)); printf(" ");
-                    print_campo_int(reg_get_codEstIntegra(reg));
-                    printf("\n");
-                }
+            /* Verifica se o registo não está removido e se passa no filtro modularizado */
+            if (reg_get_removido(reg) == '0' && registro_passa_filtrob(reg, b)) {
+                encontrou = 1;
+                print_registro(reg);
             }
             reg_free(&reg);
         }
 
-        if (!encontrou_algum) {
-            printf("Registro inexistente.\n"); 
+        if (!encontrou) {
+            printf("Registro inexistente.\n");
         }
 
-        printf("\n");
+        /* Libera a memória da busca antes da próxima iteração ou fim da função */
+        apagar_busca(&b);
+        printf("\n"); 
     }
     fclose(fp);
 }
 
-void update_reg(){
+//funcionalidade 4: remoção lógica de registros
+
+Header* ler_header_do_bin(FILE* fp) {
+    Header* head = criar_header(); // Aloca a struct
+    fseek(fp, 0, SEEK_SET);
+
+    char status;
+    int topo, proxRRN, nroEst, nroPares;
+
+    fread(&status, sizeof(char), 1, fp);
+    fread(&topo, sizeof(int), 1, fp);
+    fread(&proxRRN, sizeof(int), 1, fp);
+    fread(&nroEst, sizeof(int), 1, fp);
+    fread(&nroPares, sizeof(int), 1, fp);
+
+    header_set_status(head, status);
+    header_set_topo(head, topo);
+    header_set_proxRRN(head, proxRRN);
+    header_set_nroEstacoes(head, nroEst);
+    header_set_nroParesEstacao(head, nroPares);
+
+    return head;
+}
+
+
+AVL* povoa_avl(FILE* fp){
+    fseek(fp, 17, SEEK_SET); //pula o Header de 17 bytes 
+    Registro* reg_aux;
+    AVL* nomesEstacoes = AVL_criar();
+
+    /*LEMBRO DELES FALANDO ALGUMA COISA SOBRE NAO PODER LER O REGISTRO INTEIRO SE ELE TIVER SIDO
+    EXCLUIDO, TIPO, A GENTE TEM QUE PEGAR DE ALGUMA FORMA SO O CAMPO REMOVIDO EM VEZ DE RECUPERAR TUDO
+    MAS 1. NAO SEI SE ENTENDI CERTO E 2. NAO SEI COMO FAZER ISSO*/
+    while ((reg_aux = bin_to_reg(fp)) != NULL) {
+        if (reg_get_removido(reg_aux) == '0') {
+            AVL_inserir(nomesEstacoes, reg_get_nomeEstacao(reg_aux));
+
+        }
+        reg_free(&reg_aux);
+    }
+
+    return nomesEstacoes;
+}
+
+void remover(char* nome_arquivo) {
     
+    FILE* fp = fopen(nome_arquivo, "rb+");
+    if (!verificarStatusArquivo(fp)) return;
+
+    //carrega o Header para a memória e marca como inconsistente no início
+    Header* h = ler_header_do_bin(fp);
+    header_set_status(h, '0');
+    header_to_bin(fp, h); 
+
+    //povoa a AVL com os nomes das estações existentes para controle de nroEstacoes
+    AVL* nomesEstacoes = povoa_avl(fp);
+
+    int n_buscas; 
+    if (scanf("%d", &n_buscas) != 1) {
+        fclose(fp); 
+        head_free(&h); 
+        AVL_apagar(&nomesEstacoes); 
+        return;
+    }
+
+    while (n_buscas--) {
+        int m_filtros; 
+        scanf("%d", &m_filtros);
+
+        Busca* b = criar_busca(m_filtros);
+        preencher_filtros(b);
+
+        fseek(fp, 17, SEEK_SET); // Retorna ao início dos registros
+        Registro* reg;
+        long offset;
+
+        //itera pelo arquivo capturando o offset antes de avançar o ponteiro
+        while (offset = ftell(fp), (reg = bin_to_reg(fp)) != NULL) {
+            //verifica se o registro é válido e atende aos critérios da struct Busca
+            if (reg_get_removido(reg) == '0' && registro_passa_filtrob(reg, b)) {
+                
+                int rrn_atual = (offset - 17) / 80; 
+                char* nome_e = reg_get_nomeEstacao(reg);
+
+                //se a quantidade na AVL for 1, esta é a última ocorrência desse nome no arquivo
+                if (AVL_quantidade_ocorencias(nomesEstacoes, nome_e) == 1) {
+                    header_set_nroEstacoes(h, header_get_nroEstacoes(h) - 1);
+                }
+                AVL_remover(nomesEstacoes, nome_e); //decrementa count ou remove nó
+
+                //decrementa se houver uma próxima estação
+                if (reg_get_codProxEstacao(reg) != -1) {
+                    header_set_nroParesEstacao(h, header_get_nroParesEstacao(h) - 1);
+                }
+
+                reg_set_removido(reg, '1'); // '1' indica removido logicamente 
+                reg_set_proximo(reg, header_get_topo(h)); // Aponta para o antigo topo da pilha
+                header_set_topo(h, rrn_atual); // O novo topo da pilha vira este RRN
+
+                //Grava a alteração no registro diretamente no arquivo no offset correto
+                fseek(fp, offset, SEEK_SET);
+                reg_to_bin(reg, fp, offset); 
+                
+                // Retorna o ponteiro para o início do próximo registro
+                fseek(fp, offset + 80, SEEK_SET); 
+            }
+            reg_free(&reg);
+        }
+        // Libera memória da busca atual
+        apagar_busca(&b);
+    }
+
+    //salva o Header atualizado (topo, nroEstacoes, nroPares) e consistente
+    header_set_status(h, '1'); 
+    header_to_bin(fp, h); 
+
+    fclose(fp);
+    head_free(&h);
+    AVL_apagar(&nomesEstacoes);
+    BinarioNaTela(nome_arquivo); 
 }

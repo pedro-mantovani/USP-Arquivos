@@ -258,6 +258,12 @@ void header_set_nroParesEstacao(Header* h, int nroParesEstacao){
     h->nroParesEstacao = nroParesEstacao;
 }
 
+void reg_set_removido(Registro* reg, char removido) {
+    if (reg != NULL) {
+        reg->removido = removido;
+    }
+}
+
 void print_reg(Registro* reg){
     if (reg == NULL) {
         printf("Registro NULL\n");
