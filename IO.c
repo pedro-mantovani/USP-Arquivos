@@ -155,14 +155,16 @@ void read_csv(FILE* fp_csv, FILE* fp_bin){
     char linha[256];
     char *ptr;
     char *token;
-    int codProxEstacao;
-    int paresEstacoes = 0;
+    char* codEstacao;
+    char* codProxEstacao;
+    char pair[21];
+    int nroRegistos = 0;
 
     Registro* reg_temp = criar_registro();
 
     AVL* nomesEstacoes = AVL_criar();
+    AVL* paresEstacoes = AVL_criar();
 
-    int nroParesEstacao = 0;
     if (fp_csv == NULL) return;
 
     fgets(linha, sizeof(linha), fp_csv); // Queima a linha de cabeçalho
@@ -172,7 +174,8 @@ void read_csv(FILE* fp_csv, FILE* fp_bin){
         // Troca o \n por \0
         linha[strcspn(linha, "\n") - 1] = '\0';
         
-        reg_set_codEstacao(reg_temp, atoi(strsep(&ptr, ",")));
+        codEstacao = strsep(&ptr, ",");
+        reg_set_codEstacao(reg_temp, atoi(codEstacao));
 
         token = strsep(&ptr, ",");
         reg_set_tamNomeEstacao(reg_temp, strlen(token));
@@ -185,28 +188,37 @@ void read_csv(FILE* fp_csv, FILE* fp_bin){
         reg_set_tamNomeLinha(reg_temp, strlen(token));
         reg_set_nomeLinha(reg_temp, token);
 
-        codProxEstacao = convert_num(strsep(&ptr, ","));
-        reg_set_codProxEstacao(reg_temp, codProxEstacao);
-        if(codProxEstacao != -1)
-            paresEstacoes ++;
+        codProxEstacao = strsep(&ptr, ",");
+        reg_set_codProxEstacao(reg_temp, convert_num(codProxEstacao));
+        // Salva em ordem lexográfica (menor, maior)
+        if(*codProxEstacao != '\0'){
+            if (strcmp(codEstacao, codProxEstacao) < 0) {
+                snprintf(pair, sizeof(pair), "%s,%s", codEstacao, codProxEstacao);
+            } else {
+                snprintf(pair, sizeof(pair), "%s,%s", codProxEstacao, codEstacao);
+            }
+            AVL_inserir(paresEstacoes, pair);
+        }
 
         reg_set_distProxEstacao(reg_temp, convert_num(strsep(&ptr, ",")));
         reg_set_codLinhaIntegra(reg_temp, convert_num(strsep(&ptr, ",")));
         reg_set_codEstIntegra(reg_temp, convert_num(strsep(&ptr, ",")));
 
-        nroParesEstacao ++;
         reg_to_bin(reg_temp, fp_bin, -1);
+        nroRegistos ++;
     }
 
     fclose(fp_csv);
 
     header_set_nroEstacoes(head, AVL_tamanho(nomesEstacoes));
-    header_set_nroParesEstacao(head, paresEstacoes);
-    header_set_proxRRN(head, nroParesEstacao);
+    header_set_nroParesEstacao(head, AVL_tamanho(paresEstacoes));
+    header_set_proxRRN(head, nroRegistos);
     header_set_status(head, '1');
     header_to_bin(fp_bin, head);
     reg_free(&reg_temp);
     head_free(&head);
+    AVL_apagar(nomesEstacoes);
+    AVL_apagar(paresEstacoes);
     fclose(fp_bin);
 }
 
@@ -272,6 +284,11 @@ void select_all(char* nome_arquivo) {
 
 //funcionalidade 3: busca parametrizada
 
+
+// Problemas - POO
+// 1. Não está modularizado
+// 2. Não retorna o ponteiro para o registro
+
 void busca_parametrizada(char* nome_arquivo) {
     FILE* fp = fopen(nome_arquivo, "rb");
     if (fp == NULL) {
@@ -295,6 +312,7 @@ void busca_parametrizada(char* nome_arquivo) {
         scanf("%d", &m_filtros); 
 
         // Arrays simples para guardar os filtros da busca atual
+        // Um malloc aqui nada a ver? - POO
         char nomes[m_filtros][50];
         char valoresStr[m_filtros][100];
         int valoresInt[m_filtros];
@@ -370,4 +388,8 @@ void busca_parametrizada(char* nome_arquivo) {
         printf("\n");
     }
     fclose(fp);
+}
+
+void update_reg(){
+    
 }

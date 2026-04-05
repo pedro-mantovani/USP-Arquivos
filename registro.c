@@ -307,16 +307,16 @@ Registro* ler_registro(FILE* f){
     return reg;
 }
 
-//funcionalidade 2: escrever todos os registros do arquivo binário
+// Funcionalidade 2: escrever todos os registros do arquivo binário
 Registro* bin_to_reg(FILE* fp) {
     if (fp == NULL) return NULL;
 
-    long pos_inicial = ftell(fp); // Guarda onde o registro começou
     Registro* reg = criar_registro();
     if (reg == NULL) return NULL;
 
     // 1. Campos fixos iniciais (1 + 4 + 4 + 4 + 4 + 4 + 4 + 4 = 29 bytes)
     if (fread(&(reg->removido), sizeof(char), 1, fp) != 1) {
+        fseek(fp, 79, SEEK_CUR);
         reg_free(&reg);
         return NULL;
     }
@@ -344,9 +344,8 @@ Registro* bin_to_reg(FILE* fp) {
         reg->nomeLinha[reg->tamNomeLinha] = '\0';
     }
 
-    // 4. GARANTIA DOS 80 BYTES: Salta para o início do próximo registro
-    // Isso ignora o lixo '$' corretamente, não importa quantos bytes sobraram
-    fseek(fp, pos_inicial + 80, SEEK_SET);
+    // Ignora o lixo '$' pulando o número de bytes restantes (80 - 37 - tamStrings)
+    fseek(fp, 43 - reg->tamNomeEstacao - reg->tamNomeLinha, SEEK_CUR);
 
     return reg;
 }
