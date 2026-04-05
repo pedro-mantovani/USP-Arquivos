@@ -1,90 +1,183 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "busca.h"
 #include "IO.h" 
 
-//Aloca a struct e os vetores internos com base no m fornecido
-Busca* criar_busca(int m) {
-    Busca *b = (Busca*) malloc(sizeof(Busca));
-    if (!b) return NULL;
 
-    b->m = m;
-    b->nomes = (char**) malloc(m * sizeof(char*));
-    b->valoresStr = (char**) malloc(m * sizeof(char*));
-    b->valoresInt = (int*) malloc(m * sizeof(int));
+bool filter(Registro *reg, char* criterio, char* valor){
+    int valor_inteiro;    
+    if(strcmp(valor, "") == 0)
+        valor_inteiro = -1;
+    else 
+        valor_inteiro = atoi(valor);
 
-    for (int i = 0; i < m; i++) {
-        b->nomes[i] = (char*) malloc(50 * sizeof(char));
-        b->valoresStr[i] = (char*) malloc(100 * sizeof(char));
+    if (strcmp(criterio, "codEstacao") == 0)
+        return (reg_get_codEstacao(reg) == valor_inteiro);
+        
+    if (strcmp(criterio, "nomeEstacao") == 0) {
+        char *res = reg_get_nomeEstacao(reg);
+        if (res && strcmp(res, valor) == 0) return 1;
+        else if (!res && strcmp(valor, "") == 0) return 1;
+        return 0;
     }
-    return b;
+
+    if (strcmp(criterio, "codLinha") == 0)
+        return (reg_get_codLinha(reg) == valor_inteiro);
+
+    if (strcmp(criterio, "nomeLinha") == 0) {
+        char *res = reg_get_nomeLinha(reg);
+        if (res && strcmp(res, valor) == 0) return 1;
+        else if (!res && strcmp(valor, "") == 0) return 1;
+        return 0;
+    } 
+
+    if (strcmp(criterio, "codProxEstacao") == 0)
+        return (reg_get_codProxEstacao(reg) == valor_inteiro);
+    
+    if (strcmp(criterio, "distProxEstacao") == 0)
+        return (reg_get_distProxEstacao(reg) == valor_inteiro);
+    
+    if (strcmp(criterio, "codLinhaIntegra") == 0)
+        return (reg_get_codLinhaIntegra(reg) == valor_inteiro);
+    
+    if (strcmp(criterio, "codEstIntegra") == 0)
+        return (reg_get_codEstIntegra(reg) == valor_inteiro);
+    
+    // Critério não encontrado
+    return 0;
 }
 
-//Libera toda a memória alocada dinamicamente
-void apagar_busca(Busca **b) {
-    if (!b || !*b) return;
-    for (int i = 0; i < (*b)->m; i++) {
-        free((*b)->nomes[i]);
-        free((*b)->valoresStr[i]);
+Registro** filtrar_registros(FILE* fp, char* criterio, char* valor, int* nroEstacoesFiltradas){
+    int nroRegistros = 0;
+    int registrosAlocados = 2;
+    Registro** registros = malloc(registrosAlocados * sizeof(Registro*));
+    if(registros == NULL){
+        printf("Falha ao alocar a memória\n");
+        return NULL;
     }
-    free((*b)->nomes);
-    free((*b)->valoresStr);
-    free((*b)->valoresInt);
-    free(*b);
-    *b = NULL;
+
+    // Lê o número de RRNs do registro
+    fseek(fp, 5, SEEK_SET);
+    int totalRRN;
+    fread(&totalRRN, sizeof(int), 1, fp);
+
+    // Pula para o primeiro registro
+    fseek(fp, 17, SEEK_SET);
+    
+    for(int i = 0; i < totalRRN; i ++){
+        Registro* reg_temp = bin_to_reg(fp);
+        if(reg_temp == NULL)
+            continue;
+        if(filter(reg_temp, criterio, valor)){
+            nroRegistros ++;
+            if(nroRegistros >= registrosAlocados){
+                registrosAlocados *= 2;
+                Registro** temp = realloc(registros, registrosAlocados * sizeof(Registro*));
+                if (temp == NULL) {
+                    printf("Falha na realocação!\n");
+                    free(registros);
+                    return NULL;
+                }
+                registros = temp;
+            }
+            registros[nroRegistros - 1] = reg_temp;
+        }else
+            reg_free(&reg_temp);
+    }
+    *nroEstacoesFiltradas = nroRegistros;
+    if(nroRegistros > 0){
+        Registro** temp = realloc(registros, nroRegistros * sizeof(Registro*));
+        if (temp != NULL)
+            registros = temp;
+        return registros;
+    }else{
+        free(registros);
+        return NULL;
+    }
 }
 
-//Lê os m campos da entrada padrão e processa os valores
-void preencher_filtros(Busca *b) {
-    for (int i = 0; i < b->m; i++) {
-        scanf("%s", b->nomes[i]);
-        ScanQuoteString(b->valoresStr[i]); 
+// Ele está dando double free quando falha
+Registro** filtrar_vetor(Registro** registros, char* criterio, char* valor, int* nroEstacoesFiltradas){
+    if(registros == NULL) return NULL;
 
-        if (strcmp(b->valoresStr[i], "") == 0) {
-            b->valoresInt[i] = -1; 
-        } else {
-            b->valoresInt[i] = atoi(b->valoresStr[i]);
+    int nroRegistros = 0;
+    Registro** registrosFiltrados = malloc(*nroEstacoesFiltradas * sizeof(Registro*));
+    if(registrosFiltrados == NULL){
+        printf("Falha ao alocar a memória\n");
+        for(int i = 0; i < *nroEstacoesFiltradas; i++){
+            reg_free(&registros[i]);
         }
+        free(registros);
+        return NULL;
+    }
+
+    for(int i = 0; i < *nroEstacoesFiltradas; i++){
+        if(filter(registros[i], criterio, valor)){
+            registrosFiltrados[nroRegistros] = registros[i];
+            nroRegistros ++;
+        }else
+            reg_free(&registros[i]);
+    }
+    *nroEstacoesFiltradas = nroRegistros;
+    if(nroRegistros > 0){
+        Registro** temp = realloc(registrosFiltrados, nroRegistros * sizeof(Registro*));
+        if (temp != NULL) {
+            registrosFiltrados = temp;
+        }
+        return registrosFiltrados;
+    }else{
+        free(registrosFiltrados);
+        return NULL;
     }
 }
 
-//Verifica se o registro atual satisfaz TODOS os critérios da busca
-int registro_passa_filtrob(Registro *reg, Busca *b) {
-    for (int i = 0; i < b->m; i++) {
-        int match = 0;
-        char *nomeCampo = b->nomes[i];
+Registro** filtros_multiplos(FILE* fp, int* nroEstacoesFiltradas){
+    char criterio[50];
+    char valor[50];
+    int n_filtros;
+    scanf("%d", &n_filtros);
 
-        if (strcmp(nomeCampo, "codEstacao") == 0) {
-            if (reg_get_codEstacao(reg) == b->valoresInt[i]) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "nomeEstacao") == 0) {
-            char *res = reg_get_nomeEstacao(reg);
-            if (res && strcmp(res, b->valoresStr[i]) == 0) match = 1;
-            else if (!res && strcmp(b->valoresStr[i], "") == 0) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "codLinha") == 0) {
-            if (reg_get_codLinha(reg) == b->valoresInt[i]) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "nomeLinha") == 0) {
-            char *res = reg_get_nomeLinha(reg);
-            if (res && strcmp(res, b->valoresStr[i]) == 0) match = 1;
-            else if (!res && strcmp(b->valoresStr[i], "") == 0) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "codProxEstacao") == 0) {
-            if (reg_get_codProxEstacao(reg) == b->valoresInt[i]) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "distProxEstacao") == 0) {
-            if (reg_get_distProxEstacao(reg) == b->valoresInt[i]) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "codLinhaIntegra") == 0) {
-            if (reg_get_codLinhaIntegra(reg) == b->valoresInt[i]) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "codEstIntegra") == 0) {
-            if (reg_get_codEstIntegra(reg) == b->valoresInt[i]) match = 1;
-        }
+    scanf("%s", criterio);
+    ScanQuoteString(valor); 
 
-        if (!match) return 0; //se um critério falhar, o registro não serve
+    // Filtro inicial do arquivo todo
+    Registro** registros = filtrar_registros(fp, criterio, valor, nroEstacoesFiltradas);
+    n_filtros --;
+
+    while(n_filtros--){
+        scanf("%s", criterio);
+        ScanQuoteString(valor);
+        registros = filtrar_vetor(registros, criterio, valor, nroEstacoesFiltradas);
     }
-    return 1;
+
+    return registros;
+}
+
+void buscar(char* nome_arquivo){
+    FILE* fp = fopen(nome_arquivo, "rb");
+    if(!verificarStatusArquivo(fp)) return;
+
+    int n_buscas;
+    scanf("%d", &n_buscas);
+
+    int nroEstacoesFiltradas = 0;
+    while (n_buscas--) {
+        
+        Registro** registros = filtros_multiplos(fp, &nroEstacoesFiltradas);
+
+        if (nroEstacoesFiltradas == 0)
+            printf("Registro inexistente.\n");
+        else{
+            for(int i = 0; i < nroEstacoesFiltradas; i++){
+                print_reg(registros[i]);
+                reg_free(&registros[i]);
+            }
+        }
+        if(registros != NULL)
+            free(registros);
+        printf("\n"); 
+    }
+    fclose(fp);
 }

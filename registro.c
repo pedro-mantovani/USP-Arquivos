@@ -264,32 +264,31 @@ void reg_set_removido(Registro* reg, char removido) {
     }
 }
 
+void print_campo_int(int valor) {
+    if (valor == -1) printf("NULO");
+    else printf("%d", valor);
+}
+
+void print_campo_str(char* str) {
+    if (str == NULL || strlen(str) == 0) printf("NULO");
+    else printf("%s", str);
+}
+
 void print_reg(Registro* reg){
     if (reg == NULL) {
         printf("Registro NULL\n");
         return;
     }
 
-    printf("=== Registro ===\n");
-
-    printf("removido: %c\n", reg->removido);
-    printf("proximo: %d\n", reg->proximo);
-    printf("codEstacao: %d\n", reg->codEstacao);
-    printf("codLinha: %d\n", reg->codLinha);
-    printf("codProxEstacao: %d\n", reg->codProxEstacao);
-    printf("distProxEstacao: %d\n", reg->distProxEstacao);
-    printf("codLinhaIntegra: %d\n", reg->codLinhaIntegra);
-    printf("codEstIntegra: %d\n", reg->codEstIntegra);
-
-    printf("tamNomeEstacao: %d\n", reg->tamNomeEstacao);
-    printf("nomeEstacao: %s\n", 
-        (reg->nomeEstacao != NULL) ? reg->nomeEstacao : "(null)");
-
-    printf("tamNomeLinha: %d\n", reg->tamNomeLinha);
-    printf("nomeLinha: %s\n", 
-        (reg->nomeLinha != NULL) ? reg->nomeLinha : "(null)");
-
-    printf("================\n");
+    print_campo_int(reg->codEstacao); printf(" ");
+    print_campo_str(reg->nomeEstacao); printf(" ");
+    print_campo_int(reg->codLinha); printf(" ");
+    print_campo_str(reg->nomeLinha); printf(" ");
+    print_campo_int(reg->codProxEstacao); printf(" ");
+    print_campo_int(reg->distProxEstacao); printf(" ");
+    print_campo_int(reg->codLinhaIntegra); printf(" ");
+    print_campo_int(reg->codEstIntegra);
+    printf("\n");
 }
 
 void reg_free(Registro** reg){
@@ -318,8 +317,7 @@ Registro* bin_to_reg(FILE* fp) {
     if (fp == NULL) return NULL;
 
     Registro* reg = criar_registro();
-    if (reg == NULL) return NULL;
-
+    if(reg == NULL) return NULL;
     // 1. Campos fixos iniciais (1 + 4 + 4 + 4 + 4 + 4 + 4 + 4 = 29 bytes)
     if (fread(&(reg->removido), sizeof(char), 1, fp) != 1) {
         fseek(fp, 79, SEEK_CUR);

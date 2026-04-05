@@ -1,6 +1,7 @@
 #ifndef IO_H
     #define IO_H
 
+    #include <stdbool.h>
     #include "registro.h"
     #include "AVL.h"
     #include "busca.h"
@@ -9,10 +10,10 @@
     
     Registro* ler_registro(FILE* f);
 
-    void read_csv(FILE* fp_csv, FILE* fp_bin);
+    void read_csv(char* arquivo_csv, char* arquivo_bin);
     void BinarioNaTela(char *arquivo);
     void ScanQuoteString(char *str);
-    int verificarStatusArquivo(FILE* fp);
+    bool verificarStatusArquivo(FILE* fp);
 
     void select_all(char* nome_arquivo);
     void print_campo_int(int valor);

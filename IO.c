@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <ctype.h>
 #include "AVL.h"
 #include "registro.h"
@@ -149,8 +150,18 @@ int convert_num(char* str_num){
 }
 
 //funcionalidade 1: leitura de csv e escrita em binário
-void read_csv(FILE* fp_csv, FILE* fp_bin){
-
+void read_csv(char* arquivo_csv, char* arquivo_bin){
+    FILE* fp_csv = fopen(arquivo_csv, "r");
+    if(fp_csv == NULL){
+        printf("Falha no processamento do arquivo.");
+        return;
+    }
+    FILE* fp_bin = fopen(arquivo_bin, "wb");
+    if(fp_bin == NULL){
+        printf("Falha no processamento do arquivo.");
+        return;
+    }
+    
     Header* head = criar_header();
     header_to_bin(fp_bin, head);
 
@@ -219,25 +230,13 @@ void read_csv(FILE* fp_csv, FILE* fp_bin){
     header_to_bin(fp_bin, head);
     reg_free(&reg_temp);
     head_free(&head);
-    AVL_apagar(nomesEstacoes);
-    AVL_apagar(paresEstacoes);
+    AVL_apagar(&nomesEstacoes);
+    AVL_apagar(&paresEstacoes);
     fclose(fp_bin);
 }
 
-//funcionalidade 2: 
-
-void print_campo_int(int valor) {
-    if (valor == -1) printf("NULO");
-    else printf("%d", valor);
-}
-
-void print_campo_str(char* str) {
-    if (str == NULL || strlen(str) == 0) printf("NULO");
-    else printf("%s", str);
-}
-
 //Função para verificar o status do arquivo antes de realizar buscas ou leituras
-int verificarStatusArquivo(FILE* fp) {
+bool verificarStatusArquivo(FILE* fp) {
 
     if (fp == NULL) {
         printf("Falha no processamento do arquivo.");
@@ -255,18 +254,7 @@ int verificarStatusArquivo(FILE* fp) {
     return 1;
 }
 
-void print_registro(Registro* reg){
-    print_campo_int(reg_get_codEstacao(reg)); printf(" ");
-    print_campo_str(reg_get_nomeEstacao(reg)); printf(" ");
-    print_campo_int(reg_get_codLinha(reg)); printf(" ");
-    print_campo_str(reg_get_nomeLinha(reg)); printf(" ");
-    print_campo_int(reg_get_codProxEstacao(reg)); printf(" ");
-    print_campo_int(reg_get_distProxEstacao(reg)); printf(" ");
-    print_campo_int(reg_get_codLinhaIntegra(reg)); printf(" ");
-    print_campo_int(reg_get_codEstIntegra(reg));
-    printf("\n");
-}
-
+// Funcionalidade 2: 
 void select_all(char* nome_arquivo) {
 
     FILE* fp = fopen(nome_arquivo, "rb");
@@ -291,55 +279,6 @@ void select_all(char* nome_arquivo) {
         printf("Registro inexistente.\n");
     }
 
-    fclose(fp);
-}
-
-//funcionalidade 3: busca parametrizada
-
-
-// Problemas - POO
-// 1. Não está modularizado
-// 2. Não retorna o ponteiro para o registro
-
-void busca_parametrizada(char* nome_arquivo) {
-    FILE* fp = fopen(nome_arquivo, "rb");
-    if(!verificarStatusArquivo(fp)) return;
-
-    int n_buscas;
-    if (scanf("%d", &n_buscas) != 1) {
-        fclose(fp);
-        return;
-    }
-
-    while (n_buscas--) {
-        int m_filtros;
-        scanf("%d", &m_filtros);
-
-        /* Cria a estrutura de busca com m campos alocados dinamicamente */
-        Busca* b = criar_busca(m_filtros);
-        preencher_filtros(b);
-
-        fseek(fp, 17, SEEK_SET); // Volta ao início dos dados (após o header de 17 bytes)
-        Registro* reg;
-        int encontrou = 0;
-
-        while ((reg = bin_to_reg(fp)) != NULL) {
-            /* Verifica se o registo não está removido e se passa no filtro modularizado */
-            if (reg_get_removido(reg) == '0' && registro_passa_filtrob(reg, b)) {
-                encontrou = 1;
-                print_registro(reg);
-            }
-            reg_free(&reg);
-        }
-
-        if (!encontrou) {
-            printf("Registro inexistente.\n");
-        }
-
-        /* Libera a memória da busca antes da próxima iteração ou fim da função */
-        apagar_busca(&b);
-        printf("\n"); 
-    }
     fclose(fp);
 }
 
@@ -373,9 +312,9 @@ AVL* povoa_avl(FILE* fp){
     Registro* reg_aux;
     AVL* nomesEstacoes = AVL_criar();
 
-    /*LEMBRO DELES FALANDO ALGUMA COISA SOBRE NAO PODER LER O REGISTRO INTEIRO SE ELE TIVER SIDO
+    LEMBRO DELES FALANDO ALGUMA COISA SOBRE NAO PODER LER O REGISTRO INTEIRO SE ELE TIVER SIDO
     EXCLUIDO, TIPO, A GENTE TEM QUE PEGAR DE ALGUMA FORMA SO O CAMPO REMOVIDO EM VEZ DE RECUPERAR TUDO
-    MAS 1. NAO SEI SE ENTENDI CERTO E 2. NAO SEI COMO FAZER ISSO*/
+    MAS 1. NAO SEI SE ENTENDI CERTO E 2. NAO SEI COMO FAZER ISSO
     while ((reg_aux = bin_to_reg(fp)) != NULL) {
         if (reg_get_removido(reg_aux) == '0') {
             AVL_inserir(nomesEstacoes, reg_get_nomeEstacao(reg_aux));
@@ -464,3 +403,4 @@ void remover(char* nome_arquivo) {
     AVL_apagar(&nomesEstacoes);
     BinarioNaTela(nome_arquivo); 
 }
+*/

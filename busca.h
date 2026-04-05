@@ -3,18 +3,10 @@
 
 #include "registro.h"
 
-// Estrutura dinâmica para armazenar os critérios de uma busca
-typedef struct {
-    int m;               //Quantidade de campos na busca atual
-    char **nomes;        //Vetor de strings para os nomes dos campos
-    char **valoresStr;   //Vetor de strings para os valores (ou "" para NULO)
-    int *valoresInt;     //Vetor de inteiros para os valores convertidos
-} Busca;
-
-Busca* criar_busca(int m);
-void apagar_busca(Busca **b);
-
-void preencher_filtros(Busca *b);
-int registro_passa_filtrob(Registro *reg, Busca *b);
+bool filter(Registro *reg, char* criterio, char* valor);
+Registro** filtrar_registros(FILE* fp, char* criterio, char* valor, int* nroEstacoesFiltradas);
+Registro** filtrar_vetor(Registro** registros, char* criterio, char* valor, int* nroEstacoesFiltradas);
+Registro** filtros_multiplos(FILE* fp, int* nroEstacoesFiltradas);
+void buscar(char* nome_arquivo);
 
 #endif
