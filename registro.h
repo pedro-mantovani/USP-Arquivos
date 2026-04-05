@@ -37,6 +37,7 @@
     void reg_set_nomeEstacao(Registro* reg, char* nomeEstacao);
     void reg_set_tamNomeLinha(Registro* reg, int tamNomeLinha);
     void reg_set_nomeLinha(Registro* reg, char* nomeLinha);
+    void reg_set_removido(Registro* reg, char removido);
 
     // Funções de get do header
     char header_get_status(const Header* h);
