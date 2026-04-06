@@ -14,7 +14,6 @@ int main(){
         scanf("%s", arquivo_csv);
         scanf("%s", arquivo_bin);
         read_csv(arquivo_csv, arquivo_bin);
-        BinarioNaTela(arquivo_bin);
         break;
 
     case 2: //impressão de todos os registros do arquivo binário
@@ -33,11 +32,15 @@ int main(){
         remover(arquivo_bin);
         break;
     case 5: //insercao de novos registros
+        scanf("%s", arquivo_bin);
+        insert(arquivo_bin);
         break;
 
     case 6: //atualizacao de registros
+        scanf("%s", arquivo_bin);
+        update(arquivo_bin);
         break;  
-        
+    
     default:
         break;
     }

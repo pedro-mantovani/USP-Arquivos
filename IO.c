@@ -161,7 +161,7 @@ void read_csv(char* arquivo_csv, char* arquivo_bin){
         printf("Falha no processamento do arquivo.");
         return;
     }
-    
+
     Header* head = criar_header();
     header_to_bin(fp_bin, head);
 
@@ -233,6 +233,7 @@ void read_csv(char* arquivo_csv, char* arquivo_bin){
     AVL_apagar(&nomesEstacoes);
     AVL_apagar(&paresEstacoes);
     fclose(fp_bin);
+    BinarioNaTela(arquivo_bin);
 }
 
 //Função para verificar o status do arquivo antes de realizar buscas ou leituras
@@ -254,30 +255,35 @@ bool verificarStatusArquivo(FILE* fp) {
     return 1;
 }
 
-// Funcionalidade 2: 
+// Funcionalidade 2: impressão de todos os registros do arquivo binário 
 void select_all(char* nome_arquivo) {
 
     FILE* fp = fopen(nome_arquivo, "rb");
     // Verifica status de consistência no cabeçalho (byte 0)
     if(!verificarStatusArquivo(fp)) return;
 
-    // Pula o resto do cabeçalho para chegar no primeiro registro (17 bytes total)
+    // Lê o número de RRNs do registro
+    fseek(fp, 5, SEEK_SET);
+    int totalRRN;
+    fread(&totalRRN, sizeof(int), 1, fp);
+
+    // Pula para o primeiro registro
     fseek(fp, 17, SEEK_SET);
 
     Registro* reg;
-    int encontrou_pelo_menos_um = 0; //controle para casa nao existam registro
-    while ((reg = bin_to_reg(fp)) != NULL) {
-        //ignora registros logicamente removidos ATENCAO NESSE IGNORA SE REALMENTE EH ISSO QUE QUEREM DIZR COM IGNORAR
-        if (reg_get_removido(reg) == '0') {
-            encontrou_pelo_menos_um = 1;
-            print_registro(reg);
+    int registros_lidos = 0;
+    for(int i = 0; i < totalRRN; i ++){
+        reg = bin_to_reg(fp);
+
+        if (reg != NULL) {
+            registros_lidos ++;
+            print_reg(reg);
         }
         reg_free(&reg);
     }
 
-    if (!encontrou_pelo_menos_um) {
+    if (registros_lidos == 0)
         printf("Registro inexistente.\n");
-    }
 
     fclose(fp);
 }
@@ -306,24 +312,48 @@ Header* ler_header_do_bin(FILE* fp) {
     return head;
 }
 
-
-AVL* povoa_avl(FILE* fp){
-    fseek(fp, 17, SEEK_SET); //pula o Header de 17 bytes 
-    Registro* reg_aux;
-    AVL* nomesEstacoes = AVL_criar();
-
-    LEMBRO DELES FALANDO ALGUMA COISA SOBRE NAO PODER LER O REGISTRO INTEIRO SE ELE TIVER SIDO
-    EXCLUIDO, TIPO, A GENTE TEM QUE PEGAR DE ALGUMA FORMA SO O CAMPO REMOVIDO EM VEZ DE RECUPERAR TUDO
-    MAS 1. NAO SEI SE ENTENDI CERTO E 2. NAO SEI COMO FAZER ISSO
-    while ((reg_aux = bin_to_reg(fp)) != NULL) {
-        if (reg_get_removido(reg_aux) == '0') {
-            AVL_inserir(nomesEstacoes, reg_get_nomeEstacao(reg_aux));
-
-        }
-        reg_free(&reg_aux);
+void criar_par(Registro* reg, char* pair){
+    if(reg_get_codProxEstacao(reg) == -1){
+        pair[0] = '\0';
+        return;
     }
+    if (reg_get_codEstacao(reg) < reg_get_codProxEstacao(reg))
+        snprintf(pair, 20, "%d,%d", reg_get_codEstacao(reg), reg_get_codProxEstacao(reg));
+    else
+        snprintf(pair, 20, "%d,%d", reg_get_codProxEstacao(reg), reg_get_codEstacao(reg));
+    return;
+}
 
-    return nomesEstacoes;
+void povoa_avl(FILE* fp, AVL* nomesEstacoes, AVL* paresEstacoes){
+    // Lê o número de RRNs do registro
+    fseek(fp, 5, SEEK_SET);
+    int totalRRN;
+    fread(&totalRRN, sizeof(int), 1, fp);
+
+    // Pula para o primeiro registro
+    fseek(fp, 17, SEEK_SET);
+
+    Registro* reg_aux;
+    char pair[20];
+
+    for(int i = 0; i < totalRRN; i ++) {
+        reg_aux = bin_to_reg(fp);
+
+        if (reg_aux != NULL) {
+            AVL_inserir(nomesEstacoes, reg_get_nomeEstacao(reg_aux));
+            
+            if(reg_get_codProxEstacao(reg_aux) != -1){
+                criar_par(reg_aux, pair);
+                if(pair[0] != '\0') AVL_inserir(paresEstacoes, pair);
+            }
+            reg_free(&reg_aux);
+        }
+    }
+    return;
+}
+
+long int offset_RRN(int RRN){
+    return RRN*80 + tam_header;
 }
 
 void remover(char* nome_arquivo) {
@@ -334,67 +364,178 @@ void remover(char* nome_arquivo) {
     //carrega o Header para a memória e marca como inconsistente no início
     Header* h = ler_header_do_bin(fp);
     header_set_status(h, '0');
-    header_to_bin(fp, h); 
+    header_to_bin(fp, h);
 
-    //povoa a AVL com os nomes das estações existentes para controle de nroEstacoes
-    AVL* nomesEstacoes = povoa_avl(fp);
+    //povoa a AVL com os nomes e pares das estações
+    AVL* nomesEstacoes = AVL_criar();
+    AVL* paresEstacoes = AVL_criar();
+    povoa_avl(fp, nomesEstacoes, paresEstacoes);
 
-    int n_buscas; 
-    if (scanf("%d", &n_buscas) != 1) {
+    int n_remocoes; 
+    if (scanf("%d", &n_remocoes) != 1) {
         fclose(fp); 
         head_free(&h); 
         AVL_apagar(&nomesEstacoes); 
+        AVL_apagar(&paresEstacoes);
         return;
     }
 
-    while (n_buscas--) {
-        int m_filtros; 
-        scanf("%d", &m_filtros);
+    char removido = '1';
+    long int offset;
+    int RRN;
+    int topo;
+    while (n_remocoes--) {
+        int nroEstacoesFiltradas;
+        char pair[20];
+        Registro** registrosFiltrados = filtros_multiplos(fp, &nroEstacoesFiltradas);
+        
+        for(int i = 0; i < nroEstacoesFiltradas; i ++){
+            //se a quantidade na AVL for 1, esta é a última ocorrência desse nome no arquivo
+            char* nomeEstacao = reg_get_nomeEstacao(registrosFiltrados[i]);
+            AVL_remover(nomesEstacoes, nomeEstacao); //decrementa count ou remove nó
+            
+            // Faz a mesma coisa com os pares da estação
+            criar_par(registrosFiltrados[i], pair);
+            if(pair[0] != '\0') AVL_remover(paresEstacoes, pair); //decrementa count ou remove nó
+            
+            //Grava a alteração no registro diretamente no arquivo no offset correto
+            RRN = reg_get_RRN(registrosFiltrados[i]);
+            offset = offset_RRN(RRN);
+            topo = header_get_topo(h);
+            fseek(fp, offset, SEEK_SET);
+            fwrite(&removido, sizeof(char), 1, fp);
+            fwrite(&topo, sizeof(int), 1, fp);
 
-        Busca* b = criar_busca(m_filtros);
-        preencher_filtros(b);
-
-        fseek(fp, 17, SEEK_SET); // Retorna ao início dos registros
-        Registro* reg;
-        long offset;
-
-        //itera pelo arquivo capturando o offset antes de avançar o ponteiro
-        while (offset = ftell(fp), (reg = bin_to_reg(fp)) != NULL) {
-            //verifica se o registro é válido e atende aos critérios da struct Busca
-            if (reg_get_removido(reg) == '0' && registro_passa_filtrob(reg, b)) {
-                
-                int rrn_atual = (offset - 17) / 80; 
-                char* nome_e = reg_get_nomeEstacao(reg);
-
-                //se a quantidade na AVL for 1, esta é a última ocorrência desse nome no arquivo
-                if (AVL_quantidade_ocorencias(nomesEstacoes, nome_e) == 1) {
-                    header_set_nroEstacoes(h, header_get_nroEstacoes(h) - 1);
-                }
-                AVL_remover(nomesEstacoes, nome_e); //decrementa count ou remove nó
-
-                //decrementa se houver uma próxima estação
-                if (reg_get_codProxEstacao(reg) != -1) {
-                    header_set_nroParesEstacao(h, header_get_nroParesEstacao(h) - 1);
-                }
-
-                reg_set_removido(reg, '1'); // '1' indica removido logicamente 
-                reg_set_proximo(reg, header_get_topo(h)); // Aponta para o antigo topo da pilha
-                header_set_topo(h, rrn_atual); // O novo topo da pilha vira este RRN
-
-                //Grava a alteração no registro diretamente no arquivo no offset correto
-                fseek(fp, offset, SEEK_SET);
-                reg_to_bin(reg, fp, offset); 
-                
-                // Retorna o ponteiro para o início do próximo registro
-                fseek(fp, offset + 80, SEEK_SET); 
-            }
-            reg_free(&reg);
+            header_set_topo(h, RRN); // O novo topo da pilha vira este RRN
         }
-        // Libera memória da busca atual
-        apagar_busca(&b);
+    }
+    //salva o Header atualizado (topo, nroEstacoes, nroPares) e consistente
+    header_set_nroEstacoes(h, AVL_tamanho(nomesEstacoes));
+    header_set_nroParesEstacao(h, AVL_tamanho(paresEstacoes));
+    header_set_status(h, '1'); 
+    header_to_bin(fp, h); 
+
+    fclose(fp);
+    head_free(&h);
+    AVL_apagar(&nomesEstacoes);
+    AVL_apagar(&paresEstacoes);
+    BinarioNaTela(nome_arquivo); 
+}
+
+void update(char* nome_arquivo) {
+    
+    FILE* fp = fopen(nome_arquivo, "rb+");
+    if (!verificarStatusArquivo(fp)) return;
+
+    //carrega o Header para a memória e marca como inconsistente no início
+    Header* h = ler_header_do_bin(fp);
+    header_set_status(h, '0');
+    header_to_bin(fp, h);
+
+    //povoa a AVL com os nomes e pares das estações
+    AVL* nomesEstacoes = AVL_criar();
+    AVL* paresEstacoes = AVL_criar();
+    povoa_avl(fp, nomesEstacoes, paresEstacoes);
+
+    int n_updates; 
+    if (scanf("%d", &n_updates) != 1) {
+        fclose(fp); 
+        head_free(&h); 
+        AVL_apagar(&nomesEstacoes); 
+        AVL_apagar(&paresEstacoes);
+        return;
     }
 
-    //salva o Header atualizado (topo, nroEstacoes, nroPares) e consistente
+    while (n_updates--) {
+        int nroEstacoesFiltradas;
+        Registro** registrosFiltrados = filtros_multiplos(fp, &nroEstacoesFiltradas);
+        
+        int nroCampos;
+        scanf("%d", &nroCampos);
+        for(int i = 0; i < nroCampos; i++){
+            char campo[50];
+            char valor[50];
+
+            scanf("%s", campo);
+            ScanQuoteString(valor);
+
+            int valor_inteiro;
+            if(strcmp(valor, "") == 0)
+                valor_inteiro = -1;
+            else 
+                valor_inteiro = atoi(valor);
+
+            if (strcmp(campo, "codEstacao") == 0){
+                for(int j = 0; j < nroEstacoesFiltradas; j++){
+                    char pair[20];
+                    criar_par(registrosFiltrados[i], pair);
+                    if(pair[0] != '\0') AVL_remover(paresEstacoes, pair);
+                    reg_set_codEstacao(registrosFiltrados[j], valor_inteiro);
+                    if(pair[0] != '\0') criar_par(registrosFiltrados[i], pair);
+                    AVL_inserir(paresEstacoes, pair);
+                }
+            }
+                
+            if (strcmp(campo, "nomeEstacao") == 0) {
+                for(int j = 0; j < nroEstacoesFiltradas; j++){
+                    AVL_remover(nomesEstacoes, reg_get_nomeEstacao(registrosFiltrados[j]));
+                    reg_set_nomeEstacao(registrosFiltrados[j], valor);
+                    AVL_inserir(nomesEstacoes, reg_get_nomeEstacao(registrosFiltrados[j]));
+                }
+            }
+
+            if (strcmp(campo, "codLinha") == 0){
+                for(int j = 0; j < nroEstacoesFiltradas; j++){
+                    reg_set_codLinha(registrosFiltrados[j], valor_inteiro);
+                }
+            }
+
+            if (strcmp(campo, "nomeLinha") == 0) {
+                for(int j = 0; j < nroEstacoesFiltradas; j++){
+                    reg_set_nomeLinha(registrosFiltrados[j], valor);
+                }
+            } 
+
+            if (strcmp(campo, "codProxEstacao") == 0){
+                for(int j = 0; j < nroEstacoesFiltradas; j++){
+                    char pair[20];
+                    criar_par(registrosFiltrados[i], pair);
+                    if(pair[0] != '\0') AVL_remover(paresEstacoes, pair);
+                    reg_set_codProxEstacao(registrosFiltrados[j], valor_inteiro);
+                    criar_par(registrosFiltrados[i], pair);
+                    if(pair[0] != '\0') AVL_inserir(paresEstacoes, pair);
+                }
+            }
+
+            if (strcmp(campo, "distProxEstacao") == 0){
+                for(int j = 0; j < nroEstacoesFiltradas; j++){
+                    reg_set_distProxEstacao(registrosFiltrados[j], valor_inteiro);
+                }
+            }
+
+            if (strcmp(campo, "codLinhaIntegra") == 0){
+                for(int j = 0; j < nroEstacoesFiltradas; j++){
+                    reg_set_codLinhaIntegra(registrosFiltrados[j], valor_inteiro);
+                }
+            }
+            if (strcmp(campo, "codEstIntegra") == 0){
+                for(int j = 0; j < nroEstacoesFiltradas; j++){
+                    reg_set_codEstIntegra(registrosFiltrados[j], valor_inteiro);
+                }
+            }
+        }
+        
+        // Atualiza os registros no arquivo
+        int offset;
+        for(int i = 0; i < nroEstacoesFiltradas; i++){
+            offset = offset_RRN(reg_get_RRN(registrosFiltrados[i]));
+            reg_to_bin(registrosFiltrados[i], fp, offset);
+        }
+    }
+
+    //salva o Header atualizado (nroEstacoes, nroPares) e consistente
+    header_set_nroEstacoes(h, AVL_tamanho(nomesEstacoes));
+    header_set_nroParesEstacao(h, AVL_tamanho(paresEstacoes));
     header_set_status(h, '1'); 
     header_to_bin(fp, h); 
 
@@ -403,4 +544,103 @@ void remover(char* nome_arquivo) {
     AVL_apagar(&nomesEstacoes);
     BinarioNaTela(nome_arquivo); 
 }
-*/
+
+int scan_int(){
+    char valor[50];
+    int valor_inteiro;
+    ScanQuoteString(valor);
+    if(strcmp(valor, "") == 0)
+        valor_inteiro = -1;
+    else 
+        valor_inteiro = atoi(valor);
+    return valor_inteiro;
+}
+
+void insert(char* nome_arquivo){
+
+    FILE* fp = fopen(nome_arquivo, "rb+");
+    if (!verificarStatusArquivo(fp)) return;
+
+    //carrega o Header para a memória e marca como inconsistente no início
+    Header* h = ler_header_do_bin(fp);
+    header_set_status(h, '0');
+    header_to_bin(fp, h);
+
+    //povoa a AVL com os nomes e pares das estações
+    AVL* nomesEstacoes = AVL_criar();
+    AVL* paresEstacoes = AVL_criar();
+    povoa_avl(fp, nomesEstacoes, paresEstacoes);
+
+    int n_insercoes; 
+    if (scanf("%d", &n_insercoes) != 1) {
+        fclose(fp); 
+        head_free(&h); 
+        AVL_apagar(&nomesEstacoes); 
+        AVL_apagar(&paresEstacoes);
+        return;
+    }
+
+    char valor[50];
+    int valor_inteiro;
+    long int offset;
+    int prox;
+    int topo;
+    while (n_insercoes--) {
+        Registro* reg = criar_registro();
+        
+        valor_inteiro = scan_int();
+        reg_set_codEstacao(reg, valor_inteiro);
+        
+        ScanQuoteString(valor);
+        reg_set_nomeEstacao(reg, valor);
+        reg_set_tamNomeEstacao(reg, strlen(valor));
+
+        valor_inteiro = scan_int();        
+        reg_set_codLinha(reg, valor_inteiro);
+        
+        ScanQuoteString(valor);
+        reg_set_nomeLinha(reg, valor);
+        reg_set_tamNomeLinha(reg, strlen(valor));
+
+        valor_inteiro = scan_int();
+        reg_set_codProxEstacao(reg, valor_inteiro);
+        
+        valor_inteiro = scan_int();
+        reg_set_distProxEstacao(reg, valor_inteiro);
+        
+        valor_inteiro = scan_int();
+        reg_set_codLinhaIntegra(reg, valor_inteiro);
+        
+        valor_inteiro = scan_int();
+        reg_set_codEstIntegra(reg, valor_inteiro);
+        
+        AVL_inserir(nomesEstacoes, reg_get_nomeEstacao(reg));
+        char pair[20];
+        criar_par(reg, pair);
+        if(pair[0] != '\0') AVL_inserir(paresEstacoes, pair);
+
+        topo = header_get_topo(h);
+        if(topo == -1){
+            offset = offset_RRN(header_get_proxRRN(h));
+            header_set_proxRRN(h, header_get_proxRRN(h) + 1);
+        }else{
+            offset = offset_RRN(topo);
+            fseek(fp, offset+1, SEEK_SET);
+            fread(&prox, sizeof(int), 1, fp);
+            header_set_topo(h, prox);
+        }
+
+        reg_to_bin(reg, fp, offset);
+    }
+
+    //salva o Header atualizado (nroEstacoes, nroPares) e consistente
+    header_set_nroEstacoes(h, AVL_tamanho(nomesEstacoes));
+    header_set_nroParesEstacao(h, AVL_tamanho(paresEstacoes));
+    header_set_status(h, '1'); 
+    header_to_bin(fp, h); 
+
+    fclose(fp);
+    head_free(&h);
+    AVL_apagar(&nomesEstacoes);
+    BinarioNaTela(nome_arquivo); 
+}

@@ -30,5 +30,4 @@
     bool AVL_vazia(AVL* arvore);
 
     int AVL_quantidade_ocorencias(AVL* arvore, char* chave);
-    bool AVL_remover_ocorrencia(AVL* arv, char* chave);
 #endif

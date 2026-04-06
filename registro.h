@@ -4,6 +4,8 @@
     typedef struct registro Registro;
     typedef struct header Header;
 
+    #define tam_header 17
+
     Registro* criar_registro();
     Header* criar_header();
 
@@ -23,9 +25,9 @@
     char* reg_get_nomeEstacao(Registro* reg);
     int reg_get_tamNomeLinha(Registro* reg);
     char* reg_get_nomeLinha(Registro* reg);
+    int reg_get_RRN(Registro* reg);
 
     // Funções de set dos registros
-    void remover_registro(Registro* reg);
     void reg_set_proximo(Registro* reg, int proximo);
     void reg_set_codEstacao(Registro* reg, int codEstacao);
     void reg_set_codLinha(Registro* reg, int codLinha);
@@ -38,6 +40,7 @@
     void reg_set_tamNomeLinha(Registro* reg, int tamNomeLinha);
     void reg_set_nomeLinha(Registro* reg, char* nomeLinha);
     void reg_set_removido(Registro* reg, char removido);
+    void reg_set_RRN(Registro* reg, int RRN);
 
     // Funções de get do header
     char header_get_status(const Header* h);

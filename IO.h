@@ -21,6 +21,8 @@
     void busca_parametrizada(char* nome_arquivo);
 
     void remover(char* nome_bin);
+    void update(char* nome_arquivo);
+    void insert(char* nome_arquivo);
     void header_to_bin(FILE* fp, const Header* head);   
     Header* ler_header_do_bin(FILE* fp);
 

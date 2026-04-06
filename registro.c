@@ -28,6 +28,7 @@ struct registro{
     char* nomeEstacao;
     int tamNomeLinha;
     char* nomeLinha;
+    int RRN;
 };
 
 Registro* criar_registro(){
@@ -48,6 +49,7 @@ Registro* criar_registro(){
     reg->nomeEstacao = NULL;
     reg->tamNomeLinha = 0;
     reg->nomeLinha = NULL;
+    reg->RRN = -1;
 
     return reg;
 }
@@ -145,9 +147,14 @@ void reg_set_nomeLinha(Registro* reg, char* nomeLinha){
     }
 }
 
+void reg_set_RRN(Registro* reg, int RRN){
+    if(reg == NULL) return;
+    reg->RRN = RRN;
+}
+
 // Funções de get dos registros
 char reg_get_removido(Registro* reg){
-    if(reg == NULL) return '\0';
+    if(reg == NULL) return '1';
     return reg->removido;
 }
 
@@ -204,6 +211,11 @@ int reg_get_tamNomeLinha(Registro* reg){
 char* reg_get_nomeLinha(Registro* reg){
     if(reg == NULL) return NULL;
     return reg->nomeLinha;
+}
+
+int reg_get_RRN(Registro* reg){
+    if(reg == NULL) return 0;
+    return reg->RRN;
 }
 
 // Funções de get do header
@@ -318,8 +330,16 @@ Registro* bin_to_reg(FILE* fp) {
 
     Registro* reg = criar_registro();
     if(reg == NULL) return NULL;
+
     // 1. Campos fixos iniciais (1 + 4 + 4 + 4 + 4 + 4 + 4 + 4 = 29 bytes)
+    // Verifica se o arquivo acabou
     if (fread(&(reg->removido), sizeof(char), 1, fp) != 1) {
+        reg_free(&reg);
+        return NULL;
+    }
+
+    // Se o registro foi removido ele pula o registro e devolve NULL
+    if (reg->removido == '1') {
         fseek(fp, 79, SEEK_CUR);
         reg_free(&reg);
         return NULL;

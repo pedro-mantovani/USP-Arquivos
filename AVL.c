@@ -216,72 +216,81 @@ Raciocínio da remoção:
 - 2 filhos: troca com o máximo da subárvore esquerda
 */
 
-// Função auxiliar da remoção
-NO* AVL_remover_aux(NO *raiz, char* chave, bool remover){
 
-    // Não encontrado
-    if(raiz == NULL)
+NO* AVL_remover_aux(NO *raiz, char* chave, bool remover_registro, bool* removeu_no) {
+    if (raiz == NULL)
         return NULL;
-    
-    // Encontrado
-    if(strcmp(chave, raiz->chave) == 0){
 
-        // Um ou nenhum filho
-        if(raiz->esq == NULL || raiz->dir == NULL){
+    int cmp = strcmp(chave, raiz->chave);
+
+    if (cmp < 0) {
+        raiz->esq = AVL_remover_aux(raiz->esq, chave, remover_registro, removeu_no);
+    }
+    else if (cmp > 0) {
+        raiz->dir = AVL_remover_aux(raiz->dir, chave, remover_registro, removeu_no);
+    }
+    else {
+        /* Encontrou a chave */
+
+        /* Se for remoção real de registro e este nó representa mais de uma ocorrência,
+           apenas decrementa a quantidade e NÃO remove o nó da árvore. */
+        if (remover_registro && raiz->quantidade > 1) {
+            raiz->quantidade--;
+            return raiz;
+        }
+
+        /* Caso com 0 ou 1 filho */
+        if (raiz->esq == NULL || raiz->dir == NULL) {
+            NO* filho = (raiz->esq != NULL) ? raiz->esq : raiz->dir;
             NO* aux = raiz;
-            NO* substituto = (raiz->esq != NULL) ? raiz->esq : raiz->dir;
-            // substitui raiz pelo seu único filho (ou NULL se folha)
-            raiz = substituto;
 
-            if(remover) // Apaga o registro
+            /* Só libera a chave se for remoção real do registro.
+               Na remoção interna de reorganização (remover_registro == false),
+               a chave pode ter sido transferida para outro nó. */
+            if (remover_registro) {
                 free(aux->chave);
-            
-            // Libera o nó
+            }
+
             free(aux);
-            aux = NULL;
+            *removeu_no = true;
+            return filho;
         }
 
-        // Ambos os filhos: troca pelo máximo da esquerda
-        else {
-            NO* aux = raiz->esq;
-            // Encontra maior valor da sub-arvore esquerda
-            while(aux->dir != NULL)
-                aux = aux->dir;
+        /* Caso com 2 filhos:
+           troca com o predecessor (maior da subárvore esquerda) */
+        NO* pred = raiz->esq;
+        while (pred->dir != NULL)
+            pred = pred->dir;
 
-            // Removendo o registro
-            free(raiz->chave);
+        /* A chave atual será substituída */
+        free(raiz->chave);
 
-            // Troca raiz e aux
-            raiz->chave = aux->chave;
+        /* Transfere os dados do predecessor para a raiz */
+        raiz->chave = pred->chave;
+        raiz->quantidade = pred->quantidade;
 
-            // Remove o nó auxiliar
-            // Note que o item não é apagado pois isso o apagaria da raíz também (são os mesmos ponteiros)
-            raiz->esq = AVL_remover_aux(raiz->esq, raiz->chave, false);
-        }
+        /* Remove fisicamente o predecessor da subárvore esquerda.
+           Note que remover_registro = false para NÃO decrementar quantidade
+           e NÃO liberar pred->chave, pois ela agora pertence à raiz. */
+        raiz->esq = AVL_remover_aux(raiz->esq, pred->chave, false, removeu_no);
     }
 
-    // Caso não tenha encontrado continua procurando
-    else if(strcmp(chave, raiz->chave) < 0)
-        raiz->esq = AVL_remover_aux(raiz->esq, chave, remover);
-    else
-        raiz->dir = AVL_remover_aux(raiz->dir, chave, remover);
-
-    if (raiz != NULL){
-        // Arruma a altura
+    /* Rebalanceamento */
+    if (raiz != NULL) {
         raiz->altura = max(AVL_altura_no(raiz->esq), AVL_altura_no(raiz->dir)) + 1;
 
-        // Arruma o balanceamento
         int fb = AVL_altura_no(raiz->esq) - AVL_altura_no(raiz->dir);
-        if(fb == -2){
+
+        if (fb == -2) {
             int fb_dir = AVL_altura_no(raiz->dir->esq) - AVL_altura_no(raiz->dir->dir);
-            if(fb_dir <= 0)
+            if (fb_dir <= 0)
                 raiz = rotacao_esquerda(raiz);
             else
                 raiz = rotacao_direita_esquerda(raiz);
         }
-        else if(fb == 2){
+        else if (fb == 2) {
             int fb_esq = AVL_altura_no(raiz->esq->esq) - AVL_altura_no(raiz->esq->dir);
-            if(fb_esq >= 0)
+            if (fb_esq >= 0)
                 raiz = rotacao_direita(raiz);
             else
                 raiz = rotacao_esquerda_direita(raiz);
@@ -291,14 +300,21 @@ NO* AVL_remover_aux(NO *raiz, char* chave, bool remover){
     return raiz;
 }
 
-// Função principal da remoção
-bool AVL_remover(AVL* arv, char* chave){
-    // verifica se a árvore e a chave existem antes de tentar remover
-    if(AVL_buscar(arv, chave) == 0)
+/* Função principal */
+bool AVL_remover(AVL* arv, char* chave) {
+    if (arv == NULL || chave == NULL)
         return false;
-    
-    arv->raiz = AVL_remover_aux(arv->raiz, chave, true);
-    arv->tamanho--;
+
+    if (AVL_buscar(arv, chave) == 0)
+        return false;
+
+    bool removeu_no = false;
+    arv->raiz = AVL_remover_aux(arv->raiz, chave, true, &removeu_no);
+
+    /* tamanho = número de nós */
+    if (removeu_no)
+        arv->tamanho--;
+
     return true;
 }
 

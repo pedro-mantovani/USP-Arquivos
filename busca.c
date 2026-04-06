@@ -72,6 +72,7 @@ Registro** filtrar_registros(FILE* fp, char* criterio, char* valor, int* nroEsta
             continue;
         if(filter(reg_temp, criterio, valor)){
             nroRegistros ++;
+            reg_set_RRN(reg_temp, i);
             if(nroRegistros >= registrosAlocados){
                 registrosAlocados *= 2;
                 Registro** temp = realloc(registros, registrosAlocados * sizeof(Registro*));
