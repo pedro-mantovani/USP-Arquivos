@@ -51,12 +51,6 @@ bool filter(Registro *reg, char* criterio, char* valor){
 
 Registro** filtrar_registros(FILE* fp, char* criterio, char* valor, int* nroEstacoesFiltradas){
     int nroRegistros = 0;
-    int registrosAlocados = 2;
-    Registro** registros = malloc(registrosAlocados * sizeof(Registro*));
-    if(registros == NULL){
-        printf("Falha ao alocar a memória\n");
-        return NULL;
-    }
 
     // Lê o número de RRNs do registro
     fseek(fp, 5, SEEK_SET);
@@ -65,7 +59,13 @@ Registro** filtrar_registros(FILE* fp, char* criterio, char* valor, int* nroEsta
 
     // Pula para o primeiro registro
     fseek(fp, 17, SEEK_SET);
-    
+
+    Registro** registros = malloc(totalRRN * sizeof(Registro*));
+    if(registros == NULL){
+        printf("Falha ao alocar a memória\n");
+        return NULL;
+    }
+
     for(int i = 0; i < totalRRN; i ++){
         Registro* reg_temp = bin_to_reg(fp);
         if(reg_temp == NULL)
@@ -73,16 +73,6 @@ Registro** filtrar_registros(FILE* fp, char* criterio, char* valor, int* nroEsta
         if(filter(reg_temp, criterio, valor)){
             nroRegistros ++;
             reg_set_RRN(reg_temp, i);
-            if(nroRegistros >= registrosAlocados){
-                registrosAlocados *= 2;
-                Registro** temp = realloc(registros, registrosAlocados * sizeof(Registro*));
-                if (temp == NULL) {
-                    printf("Falha na realocação!\n");
-                    free(registros);
-                    return NULL;
-                }
-                registros = temp;
-            }
             registros[nroRegistros - 1] = reg_temp;
         }else
             reg_free(&reg_temp);
@@ -99,7 +89,6 @@ Registro** filtrar_registros(FILE* fp, char* criterio, char* valor, int* nroEsta
     }
 }
 
-// Ele está dando double free quando falha
 Registro** filtrar_vetor(Registro** registros, char* criterio, char* valor, int* nroEstacoesFiltradas){
     if(registros == NULL) return NULL;
 
@@ -121,6 +110,8 @@ Registro** filtrar_vetor(Registro** registros, char* criterio, char* valor, int*
         }else
             reg_free(&registros[i]);
     }
+    free(registros);
+
     *nroEstacoesFiltradas = nroRegistros;
     if(nroRegistros > 0){
         Registro** temp = realloc(registrosFiltrados, nroRegistros * sizeof(Registro*));
@@ -141,7 +132,7 @@ Registro** filtros_multiplos(FILE* fp, int* nroEstacoesFiltradas){
     scanf("%d", &n_filtros);
 
     scanf("%s", criterio);
-    ScanQuoteString(valor); 
+    ScanQuoteString(valor);
 
     // Filtro inicial do arquivo todo
     Registro** registros = filtrar_registros(fp, criterio, valor, nroEstacoesFiltradas);
