@@ -4,11 +4,15 @@
     typedef struct registro Registro;
     typedef struct header Header;
 
+    #define reg_tam 80
+
     Registro* criar_registro();
     Header* criar_header();
 
     Registro* ler_registro(FILE* f);
     Registro* bin_to_reg(FILE* fp);
+    void reg_to_bin(Registro* reg, FILE* fp, int pos);
+
 
     // Funções de get dos registros
     char reg_get_removido(Registro* reg);

@@ -1,8 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "AVL.h"
+#include "registro.h"
+#include "header.h"
 #include "busca.h"
-#include "IO.h" 
+#include "funcionalidades.h"
+#include "utilities.h"
+
 
 //Aloca a struct e os vetores internos com base no m fornecido
 Busca* criar_busca(int m) {
@@ -87,4 +92,46 @@ int registro_passa_filtrob(Registro *reg, Busca *b) {
         if (!match) return 0; //se um critério falhar, o registro não serve
     }
     return 1;
+}
+
+void busca_parametrizada(char* nome_arquivo) {
+    FILE* fp = fopen(nome_arquivo, "rb");
+    if(!verificarStatusArquivo(fp)) return;
+
+    int n_buscas;
+    if (scanf("%d", &n_buscas) != 1) {
+        fclose(fp);
+        return;
+    }
+
+    while (n_buscas--) {
+        int m_filtros;
+        scanf("%d", &m_filtros);
+
+        /* Cria a estrutura de busca com m campos alocados dinamicamente */
+        Busca* b = criar_busca(m_filtros);
+        preencher_filtros(b);
+
+        fseek(fp, 17, SEEK_SET); // Volta ao início dos dados (após o header de 17 bytes)
+        Registro* reg;
+        int encontrou = 0;
+
+        while ((reg = bin_to_reg(fp)) != NULL) {
+            /* Verifica se o registo não está removido e se passa no filtro modularizado */
+            if (reg_get_removido(reg) == '0' && registro_passa_filtrob(reg, b)) {
+                encontrou = 1;
+                print_reg(reg);
+            }
+            reg_free(&reg);
+        }
+
+        if (!encontrou) {
+            printf("Registro inexistente.\n");
+        }
+
+        /* Libera a memória da busca antes da próxima iteração ou fim da função */
+        apagar_busca(&b);
+        printf("\n"); 
+    }
+    fclose(fp);
 }

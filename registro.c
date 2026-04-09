@@ -7,14 +7,6 @@
 Funções e estruturas relacionadas diretamente aos registros
 */
 
-struct header{
-    char status;
-    int topo;
-    int proxRRN;
-    int nroEstacoes;
-    int nroParesEstacao;
-};
-
 struct registro{
     char removido;
     int proximo;
@@ -52,20 +44,111 @@ Registro* criar_registro(){
     return reg;
 }
 
-Header* criar_header(){
-    Header* head = malloc(sizeof(Header));
-    if(head == NULL){
-        printf("Erro ao alocar memória\n");
+// Caso a posição passada seja -1 ele não faz o seek e coloca como append para otimização
+void reg_to_bin(Registro* reg, FILE* fp, int pos){
+    char c;
+    int x;
+    char* s;
+    int bytes_lixo = 43;
+
+    if (fp == NULL || reg == NULL) return;
+
+    if(pos != -1)
+        fseek(fp, pos, SEEK_SET);
+
+    c = reg_get_removido(reg);
+    fwrite(&c, sizeof(char), 1, fp);
+
+    x = reg_get_proximo(reg);
+    fwrite(&x, sizeof(int), 1, fp);
+
+    x = reg_get_codEstacao(reg);
+    fwrite(&x, sizeof(int), 1, fp);
+
+    x = reg_get_codLinha(reg);
+    fwrite(&x, sizeof(int), 1, fp);
+
+    x = reg_get_codProxEstacao(reg);
+    fwrite(&x, sizeof(int), 1, fp);
+
+    x = reg_get_distProxEstacao(reg);
+    fwrite(&x, sizeof(int), 1, fp);
+
+    x = reg_get_codLinhaIntegra(reg);
+    fwrite(&x, sizeof(int), 1, fp);
+
+    x = reg_get_codEstIntegra(reg);
+    fwrite(&x, sizeof(int), 1, fp);
+
+    x = reg_get_tamNomeEstacao(reg);
+    bytes_lixo -= x;
+    fwrite(&x, sizeof(int), 1, fp);
+
+    s = reg_get_nomeEstacao(reg);
+    if (x > 0 && s != NULL)
+        fwrite(s, sizeof(char), x, fp);
+
+    x = reg_get_tamNomeLinha(reg);
+    bytes_lixo -= x;
+    fwrite(&x, sizeof(int), 1, fp);
+
+    s = reg_get_nomeLinha(reg);
+    if (x > 0 && s != NULL)
+        fwrite(s, sizeof(char), x, fp);
+
+    char* lixo = malloc(sizeof(char)*bytes_lixo);
+    memset(lixo, '$', bytes_lixo);
+    fwrite(lixo, sizeof(char), bytes_lixo, fp);
+    free(lixo);
+}
+
+Registro* bin_to_reg(FILE* fp) {
+    if (fp == NULL) return NULL;
+
+    Registro* reg = criar_registro();
+    if(reg == NULL) return NULL;
+
+    // 1. Campos fixos iniciais (1 + 4 + 4 + 4 + 4 + 4 + 4 + 4 = 29 bytes)
+    // Verifica se o arquivo acabou
+    if (fread(&(reg->removido), sizeof(char), 1, fp) != 1) {
+        reg_free(&reg);
         return NULL;
     }
-    
-    head->status = '0';
-    head->topo = -1;
-    head->proxRRN = 0;
-    head->nroEstacoes = 0;
-    head->nroParesEstacao = 0;
-    
-    return head;
+
+    // Se o registro foi removido ele pula o registro e devolve NULL
+    if (reg->removido == '1') {
+        fseek(fp, 79, SEEK_CUR);
+        reg_free(&reg);
+        return NULL;
+    }
+    fread(&(reg->proximo), sizeof(int), 1, fp);
+    fread(&(reg->codEstacao), sizeof(int), 1, fp);
+    fread(&(reg->codLinha), sizeof(int), 1, fp);
+    fread(&(reg->codProxEstacao), sizeof(int), 1, fp);
+    fread(&(reg->distProxEstacao), sizeof(int), 1, fp);
+    fread(&(reg->codLinhaIntegra), sizeof(int), 1, fp);
+    fread(&(reg->codEstIntegra), sizeof(int), 1, fp);
+
+    // 2. Nome Estação (Tamanho + String)
+    fread(&(reg->tamNomeEstacao), sizeof(int), 1, fp);
+    if (reg->tamNomeEstacao > 0) {
+        reg->nomeEstacao = (char*)malloc(reg->tamNomeEstacao + 1);
+        fread(reg->nomeEstacao, sizeof(char), reg->tamNomeEstacao, fp);
+        reg->nomeEstacao[reg->tamNomeEstacao] = '\0';
+    }
+
+    // 3. Nome Linha (Tamanho + String)
+    fread(&(reg->tamNomeLinha), sizeof(int), 1, fp);
+    if (reg->tamNomeLinha > 0) {
+        reg->nomeLinha = (char*)malloc(reg->tamNomeLinha + 1);
+        fread(reg->nomeLinha, sizeof(char), reg->tamNomeLinha, fp);
+        reg->nomeLinha[reg->tamNomeLinha] = '\0';
+    }
+
+    // Ignora o lixo '$' pulando o número de bytes restantes (80 - 37 - tamStrings)
+    fseek(fp, 43 - reg->tamNomeEstacao - reg->tamNomeLinha, SEEK_CUR);
+
+    return reg;
 }
 
 // Funções de set dos registros
@@ -206,62 +289,20 @@ char* reg_get_nomeLinha(Registro* reg){
     return reg->nomeLinha;
 }
 
-// Funções de get do header
-char header_get_status(const Header* h){
-    if(h == NULL) return '0';
-    return h->status;
-}
-
-int header_get_topo(const Header* h){
-    if(h == NULL) return -1;
-    return h->topo;
-}
-
-int header_get_proxRRN(const Header* h){
-    if(h == NULL) return -1;
-    return h->proxRRN;
-}
-
-int header_get_nroEstacoes(const Header* h){
-    if(h == NULL) return -1;
-    return h->nroEstacoes;
-}
-
-int header_get_nroParesEstacao(const Header* h){
-    if(h == NULL) return -1;
-    return h->nroParesEstacao;
-}
-
-// Funções de set do header
-void header_set_status(Header* h, char status){
-    if(h == NULL) return;
-    h->status = status;
-}
-
-void header_set_topo(Header* h, int topo){
-    if(h == NULL) return;
-    h->topo = topo;
-}
-
-void header_set_proxRRN(Header* h, int proxRRN){
-    if(h == NULL) return;
-    h->proxRRN = proxRRN;
-}
-
-void header_set_nroEstacoes(Header* h, int nroEstacoes){
-    if(h == NULL) return;
-    h->nroEstacoes = nroEstacoes;
-}
-
-void header_set_nroParesEstacao(Header* h, int nroParesEstacao){
-    if(h == NULL) return;
-    h->nroParesEstacao = nroParesEstacao;
-}
-
 void reg_set_removido(Registro* reg, char removido) {
     if (reg != NULL) {
         reg->removido = removido;
     }
+}
+
+void print_campo_int(int valor) {
+    if (valor == -1) printf("NULO");
+    else printf("%d", valor);
+}
+
+void print_campo_str(char* str) {
+    if (str == NULL || strlen(str) == 0) printf("NULO");
+    else printf("%s", str);
 }
 
 void print_reg(Registro* reg){
@@ -270,26 +311,15 @@ void print_reg(Registro* reg){
         return;
     }
 
-    printf("=== Registro ===\n");
-
-    printf("removido: %c\n", reg->removido);
-    printf("proximo: %d\n", reg->proximo);
-    printf("codEstacao: %d\n", reg->codEstacao);
-    printf("codLinha: %d\n", reg->codLinha);
-    printf("codProxEstacao: %d\n", reg->codProxEstacao);
-    printf("distProxEstacao: %d\n", reg->distProxEstacao);
-    printf("codLinhaIntegra: %d\n", reg->codLinhaIntegra);
-    printf("codEstIntegra: %d\n", reg->codEstIntegra);
-
-    printf("tamNomeEstacao: %d\n", reg->tamNomeEstacao);
-    printf("nomeEstacao: %s\n", 
-        (reg->nomeEstacao != NULL) ? reg->nomeEstacao : "(null)");
-
-    printf("tamNomeLinha: %d\n", reg->tamNomeLinha);
-    printf("nomeLinha: %s\n", 
-        (reg->nomeLinha != NULL) ? reg->nomeLinha : "(null)");
-
-    printf("================\n");
+    print_campo_int(reg->codEstacao); printf(" ");
+    print_campo_str(reg->nomeEstacao); printf(" ");
+    print_campo_int(reg->codLinha); printf(" ");
+    print_campo_str(reg->nomeLinha); printf(" ");
+    print_campo_int(reg->codProxEstacao); printf(" ");
+    print_campo_int(reg->distProxEstacao); printf(" ");
+    print_campo_int(reg->codLinhaIntegra); printf(" ");
+    print_campo_int(reg->codEstIntegra);
+    printf("\n");
 }
 
 void reg_free(Registro** reg){
@@ -310,49 +340,5 @@ void head_free(Header** head){
 
 Registro* ler_registro(FILE* f){
     Registro* reg = NULL;
-    return reg;
-}
-
-//funcionalidade 2: escrever todos os registros do arquivo binário
-Registro* bin_to_reg(FILE* fp) {
-    if (fp == NULL) return NULL;
-
-    long pos_inicial = ftell(fp); // Guarda onde o registro começou
-    Registro* reg = criar_registro();
-    if (reg == NULL) return NULL;
-
-    // 1. Campos fixos iniciais (1 + 4 + 4 + 4 + 4 + 4 + 4 + 4 = 29 bytes)
-    if (fread(&(reg->removido), sizeof(char), 1, fp) != 1) {
-        reg_free(&reg);
-        return NULL;
-    }
-    fread(&(reg->proximo), sizeof(int), 1, fp);
-    fread(&(reg->codEstacao), sizeof(int), 1, fp);
-    fread(&(reg->codLinha), sizeof(int), 1, fp);
-    fread(&(reg->codProxEstacao), sizeof(int), 1, fp);
-    fread(&(reg->distProxEstacao), sizeof(int), 1, fp);
-    fread(&(reg->codLinhaIntegra), sizeof(int), 1, fp);
-    fread(&(reg->codEstIntegra), sizeof(int), 1, fp);
-
-    // 2. Nome Estação (Tamanho + String)
-    fread(&(reg->tamNomeEstacao), sizeof(int), 1, fp);
-    if (reg->tamNomeEstacao > 0) {
-        reg->nomeEstacao = (char*)malloc(reg->tamNomeEstacao + 1);
-        fread(reg->nomeEstacao, sizeof(char), reg->tamNomeEstacao, fp);
-        reg->nomeEstacao[reg->tamNomeEstacao] = '\0';
-    }
-
-    // 3. Nome Linha (Tamanho + String)
-    fread(&(reg->tamNomeLinha), sizeof(int), 1, fp);
-    if (reg->tamNomeLinha > 0) {
-        reg->nomeLinha = (char*)malloc(reg->tamNomeLinha + 1);
-        fread(reg->nomeLinha, sizeof(char), reg->tamNomeLinha, fp);
-        reg->nomeLinha[reg->tamNomeLinha] = '\0';
-    }
-
-    // 4. GARANTIA DOS 80 BYTES: Salta para o início do próximo registro
-    // Isso ignora o lixo '$' corretamente, não importa quantos bytes sobraram
-    fseek(fp, pos_inicial + 80, SEEK_SET);
-
     return reg;
 }
