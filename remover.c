@@ -9,7 +9,8 @@
 #include "utilities.h"
 
 void remover(char* nome_arquivo) {
-    
+
+    // Abre o arquivo
     FILE* fp = fopen(nome_arquivo, "rb+");
     if (!verificarStatusArquivo(fp)) return;
 
@@ -19,8 +20,9 @@ void remover(char* nome_arquivo) {
     fwrite(&inconsistente, sizeof(char), 1, fp); // Coloca '0' no primeiro byte
     Header* h = bin_to_header(fp); 
 
-    int n_buscas;
-    if (scanf("%d", &n_buscas) != 1) {
+    // Lê o número de remoções
+    int n_remocoes;
+    if (scanf("%d", &n_remocoes) != 1) {
         fclose(fp); 
         head_free(&h); 
         return;
@@ -30,14 +32,19 @@ void remover(char* nome_arquivo) {
     AVL* nomes_estacoes = AVL_criar();
     AVL* pares_estacoes = AVL_criar();
 
-    while (n_buscas--) {
+    // Faz n remoções
+    while (n_remocoes--) {
+        // Lê o número de filtros
         int m_filtros; 
         scanf("%d", &m_filtros);
 
+        // Cria uma estrutura para armazenar os filtros da busca
         Campos* c_busca = criar_campos(m_filtros);
         preencher_campos(c_busca);
 
         fseek(fp, header_tam, SEEK_SET); // Vai até o início dos registros
+        
+        // Declara as variáveis que serão usadas no loop
         Registro* reg;
         long int offset;
         int topo;
@@ -69,16 +76,21 @@ void remover(char* nome_arquivo) {
                 
                 // Retorna o ponteiro para o próximo registro
                 fseek(fp, offset + 80, SEEK_SET); 
+
             }else{
-                // Se é a última remoção conta os casos únicos
-                if(n_buscas == 0){
-                    // Como o registro é válido e não foi removido colocamos na AVL o nome e o par da estação
-                    // Assim mantemos controle de quantos valores únicos existem no arquivo
+                
+                // Se é a última remoção conta o número de pares das estações e de nomes únicos
+                if(n_remocoes == 0){
+
+                    // Como o registro é válido e não foi removido ele estará no registro final e precisa ser contabilizado
                     AVL_inserir(nomes_estacoes, reg_get_nomeEstacao(reg)); // Insere o nome da estação na AVL
+
+                    // Transformma o par da estação em uma string do tipo "a,b" com a < b
                     char pair[20];
                     criar_par(reg, pair); // Cria a string do par
-                    if(pair[0] != '\0') // Caso ela exista insere na AVL
+                    if(pair[0] != '\0') // Caso ela seja válida insere na AVL
                     AVL_inserir(pares_estacoes, pair);
+                
                 }
             }
 

@@ -93,14 +93,14 @@ void criar_par(Registro* reg, char* pair){
 int verificarStatusArquivo(FILE* fp) {
 
     if (fp == NULL) {
-        printf("Falha no processamento do arquivo.");
+        printf("Falha no processamento do arquivo.\n");
         return 0;
     }
 
     char status;
     fread(&status, sizeof(char), 1, fp);
     if (status == '0') {
-        printf("Falha no processamento do arquivo.");
+        printf("Falha no processamento do arquivo.\n");
         fclose(fp);
         return 0;
     }

@@ -9,6 +9,7 @@
 
 //funcionalidade 1: leitura de csv e escrita em binário
 void ler_csv(char* arquivo_csv, char* arquivo_bin){
+    
     // Abre o arquivo
     FILE* fp_csv = fopen(arquivo_csv, "r");
     if(fp_csv == NULL){

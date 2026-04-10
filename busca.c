@@ -9,7 +9,7 @@
 #include "funcionalidades.h"
 #include "utilities.h"
 
-//Aloca a struct e os vetores internos com base no m fornecido
+// Aloca a struct e os vetores internos com base no n fornecido (número de campos)
 Campos* criar_campos(int n) {
     Campos *c = (Campos*) malloc(sizeof(Campos));
     if (!c) return NULL;
@@ -26,7 +26,7 @@ Campos* criar_campos(int n) {
     return c;
 }
 
-//Libera toda a memória alocada dinamicamente
+// Libera toda a memória alocada dinamicamente
 void apagar_campos(Campos **c) {
     if (!c || !*c) return;
 
@@ -41,7 +41,7 @@ void apagar_campos(Campos **c) {
     *c = NULL;
 }
 
-//Lê os m campos da entrada padrão e processa os valores
+// Lê os n campos da entrada padrão e processa os valores
 void preencher_campos(Campos *b) {
     for (int i = 0; i < b->n; i++) {
         scanf("%s", b->campos[i]);
@@ -80,7 +80,6 @@ bool registro_passa_filtro(Registro *reg, Campos *c) {
             return false; // Se não o registro não serve
         }
 
-        // Verifica se o critério é "codLinha"
         if (strcmp(criterio, "codLinha") == 0){
             if(reg_get_codLinha(reg) == valor_inteiro) continue;
             return false;
@@ -113,12 +112,17 @@ bool registro_passa_filtro(Registro *reg, Campos *c) {
             return false;
         }
 
+        // Critério não encontrado
+        return false;
     }
+
     // Se passou em todos os critérios retorna verdadeiro
     return true;
 }
 
+// Função principal da busca
 void busca_parametrizada(char* nome_arquivo) {
+    // Abre o arquivo
     FILE* fp = fopen(nome_arquivo, "rb");
     if(!verificarStatusArquivo(fp)) return;
 
@@ -128,7 +132,10 @@ void busca_parametrizada(char* nome_arquivo) {
         return;
     }
 
+    // Realiza n buscas
     while (n_buscas--) {
+
+        // Lê os m filtros
         int m_filtros;
         scanf("%d", &m_filtros);
 
@@ -136,24 +143,40 @@ void busca_parametrizada(char* nome_arquivo) {
         Campos* b = criar_campos(m_filtros);
         preencher_campos(b);
 
-        fseek(fp, 17, SEEK_SET); // Volta ao início dos dados (após o header de 17 bytes)
-        Registro* reg;
-        int encontrou = 0;
+        Registro* reg; // Cria um registro temporário
+        int encontrou = 0; // Cria uma flag para verificar se algum registro foi encontrado
 
-        while ((reg = bin_to_reg(fp)) != NULL) {
-            // Verifica se o registo não está removido e se passa no filtro modularizado
-            if (reg_get_removido(reg) == '0' && registro_passa_filtro(reg, b)) {
-                encontrou = 1;
-                print_reg(reg);
+        // Lê o próximo RRN do registro
+        fseek(fp, 5, SEEK_SET);
+        int proxRRN;
+        fread(&proxRRN, sizeof(int), 1, fp);
+
+        fseek(fp, header_tam, SEEK_SET); // Volta ao início dos dados (após o header de 17 bytes)
+        
+
+        // Percorre todos os registros
+        for(int RRN_atual = 0; RRN_atual < proxRRN; RRN_atual ++) {
+            
+            // Lê o registro
+            reg = bin_to_reg(fp);
+
+            // Ignora registros removidos
+            if(reg == NULL) continue;
+
+            // Verifica se o registo passa no filtro
+            if (registro_passa_filtro(reg, b)) {
+                encontrou = 1; // Atualiza a flag
+                print_reg(reg); // Imprime o registro
             }
-            reg_free(&reg);
+
+            reg_free(&reg); // Libera a memória alocada
         }
 
         if (!encontrou) {
             printf("Registro inexistente.\n");
         }
 
-        // Libera a memória da busca antes da próxima iteração ou fim da função
+        // Libera a memória alocada para armazenar os campos antes da próxima iteração ou fim da função
         apagar_campos(&b);
         printf("\n"); 
     }

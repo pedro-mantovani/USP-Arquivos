@@ -1,15 +1,21 @@
 all:
-	make compile
-	make run
+	make compile_val
+	make run_val
 
 run:
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --num-callers=20 ./main
+	./programaTrab
+
+run_val:
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --num-callers=20 ./programaTrab
 
 clean:
 	rm -f main *.bin
 
 compile:
-	gcc -O0 programaTrab.c ler_csv.c select_all.c busca.c remover.c atualizar.c registro.c header.c AVL.c inserir.c utilities.c -o main -Wall
+	gcc programaTrab.c ler_csv.c select_all.c busca.c remover.c atualizar.c registro.c header.c AVL.c inserir.c utilities.c -o programaTrab -Wall
+
+compile_val:
+	gcc -O0 programaTrab.c ler_csv.c select_all.c busca.c remover.c atualizar.c registro.c header.c AVL.c inserir.c utilities.c -o programaTrab -Wall
 
 zip:
 	zip proj1.zip programaTrab.c ler_csv.c select_all.c busca.c remover.c atualizar.c registro.c header.c AVL.c inserir.c utilities.c AVL.h busca.h funcionalidades.h registro.h header.h utilities.h Makefile
