@@ -30,13 +30,12 @@ void remover(char* nome_arquivo) {
     AVL* nomes_estacoes = AVL_criar();
     AVL* pares_estacoes = AVL_criar();
 
-
     while (n_buscas--) {
         int m_filtros; 
         scanf("%d", &m_filtros);
 
-        Busca* b = criar_busca(m_filtros);
-        preencher_filtros(b);
+        Campos* c_busca = criar_campos(m_filtros);
+        preencher_campos(c_busca);
 
         fseek(fp, header_tam, SEEK_SET); // Vai até o início dos registros
         Registro* reg;
@@ -54,7 +53,7 @@ void remover(char* nome_arquivo) {
             if(reg == NULL) continue;
 
             // Verifica se o registro atende aos critérios da struct Busca
-            if (registro_passa_filtrob(reg, b)) {
+            if (registro_passa_filtro(reg, c_busca)) {
 
                 // Calcula o byte offset em que o registro encontrado está
                 offset = RRN_to_offset(RRN_atual);
@@ -88,7 +87,7 @@ void remover(char* nome_arquivo) {
         }
 
         // Libera memória da busca atual
-        apagar_busca(&b);
+        apagar_campos(&c_busca);
     }
 
     //salva o Header atualizado (topo, nroEstacoes, nroPares) e consistente

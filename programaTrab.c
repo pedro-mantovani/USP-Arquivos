@@ -12,7 +12,7 @@ int main(){
         char arquivo_csv[100];
         scanf("%s", arquivo_csv);
         scanf("%s", arquivo_bin);
-        read_csv(arquivo_csv, arquivo_bin);
+        ler_csv(arquivo_csv, arquivo_bin);
         break;
 
     case 2: //impressão de todos os registros do arquivo binário
@@ -22,7 +22,7 @@ int main(){
 
     case 3: //recuperacao de registros do arquivo binário por campo 
         scanf("%s", arquivo_bin); 
-        buscar(arquivo_bin);
+        busca_parametrizada(arquivo_bin);
         break;
 
     case 4: // DELETE LOGIC (PILHA) [cite: 252]
@@ -32,12 +32,12 @@ int main(){
         break;
     case 5: //insercao de novos registros
         scanf("%s", arquivo_bin);
-        insert(arquivo_bin);
+        inserir(arquivo_bin);
         break;
 
     case 6: //atualizacao de registros
         scanf("%s", arquivo_bin);
-        update(arquivo_bin);
+        atualizar(arquivo_bin);
         break;  
     
     default:

@@ -4,14 +4,15 @@
     typedef struct registro Registro;
     typedef struct header Header;
 
-    #define reg_tam 80
+    #define reg_tam 80 // Tamanho em bytes do registro
+    #define valor_comparavel -3 // Como a busca é a função 3, -3 foi o valor escolhido para representar um valor não alterado
 
     Registro* criar_registro();
     Header* criar_header();
 
     Registro* ler_registro(FILE* f);
     Registro* bin_to_reg(FILE* fp);
-    void reg_to_bin(Registro* reg, FILE* fp, int pos);
+    void reg_to_bin(Registro* reg, FILE* fp, long int offset);
 
 
     // Funções de get dos registros

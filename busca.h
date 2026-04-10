@@ -1,20 +1,19 @@
 #ifndef BUSCA_H
 #define BUSCA_H
 
-#include "registro.h"
+    #include <stdbool.h>
+    #include "registro.h"
 
-// Estrutura dinâmica para armazenar os critérios de uma busca
-typedef struct {
-    int m;               //Quantidade de campos na busca atual
-    char **nomes;        //Vetor de strings para os nomes dos campos
-    char **valoresStr;   //Vetor de strings para os valores (ou "" para NULO)
-    int *valoresInt;     //Vetor de inteiros para os valores convertidos
-} Busca;
+    typedef struct {
+        int n;               // Número de campos 
+        char** campos;       // Nomes dos campos
+        char** valores;      // Valores dos campos
+    } Campos;
 
-Busca* criar_busca(int m);
-void apagar_busca(Busca **b);
+    Campos* criar_campos(int n);
+    void apagar_campos(Campos **c);
 
-void preencher_filtros(Busca *b);
-int registro_passa_filtrob(Registro *reg, Busca *b);
+    void preencher_campos(Campos *c);
+    bool registro_passa_filtro(Registro *reg, Campos *c);
 
 #endif

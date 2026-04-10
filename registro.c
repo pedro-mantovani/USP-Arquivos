@@ -45,7 +45,7 @@ Registro* criar_registro(){
 }
 
 // Caso a posição passada seja -1 ele não faz o seek e coloca como append para otimização
-void reg_to_bin(Registro* reg, FILE* fp, int pos){
+void reg_to_bin(Registro* reg, FILE* fp, long int offset){
     char c;
     int x;
     char* s;
@@ -53,8 +53,8 @@ void reg_to_bin(Registro* reg, FILE* fp, int pos){
 
     if (fp == NULL || reg == NULL) return;
 
-    if(pos != -1)
-        fseek(fp, pos, SEEK_SET);
+    if(offset != -1)
+        fseek(fp, offset, SEEK_SET);
 
     c = reg_get_removido(reg);
     fwrite(&c, sizeof(char), 1, fp);
@@ -129,13 +129,13 @@ Registro* bin_to_reg(FILE* fp) {
     fread(&(reg->codLinhaIntegra), sizeof(int), 1, fp);
     fread(&(reg->codEstIntegra), sizeof(int), 1, fp);
 
-    // 2. Nome Estação (Tamanho + String)
+    // 2. Nome Estação (Tamanho + String com '\0')
     fread(&(reg->tamNomeEstacao), sizeof(int), 1, fp);
     if (reg->tamNomeEstacao > 0) {
         reg->nomeEstacao = (char*)malloc(reg->tamNomeEstacao + 1);
         fread(reg->nomeEstacao, sizeof(char), reg->tamNomeEstacao, fp);
         reg->nomeEstacao[reg->tamNomeEstacao] = '\0';
-    }
+    } // Else o nome da string fica NULL
 
     // 3. Nome Linha (Tamanho + String)
     fread(&(reg->tamNomeLinha), sizeof(int), 1, fp);

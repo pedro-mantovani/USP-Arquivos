@@ -18,7 +18,7 @@ Header* criar_header(){
         return NULL;
     }
     
-    head->status = '0';
+    head->status = '0';  // 0 = inconsistente, 1 = consistente
     head->topo = -1;
     head->proxRRN = 0;
     head->nroEstacoes = 0;

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "AVL.h"
 #include "registro.h"
 #include "header.h"
@@ -8,90 +9,113 @@
 #include "funcionalidades.h"
 #include "utilities.h"
 
-
 //Aloca a struct e os vetores internos com base no m fornecido
-Busca* criar_busca(int m) {
-    Busca *b = (Busca*) malloc(sizeof(Busca));
-    if (!b) return NULL;
+Campos* criar_campos(int n) {
+    Campos *c = (Campos*) malloc(sizeof(Campos));
+    if (!c) return NULL;
 
-    b->m = m;
-    b->nomes = (char**) malloc(m * sizeof(char*));
-    b->valoresStr = (char**) malloc(m * sizeof(char*));
-    b->valoresInt = (int*) malloc(m * sizeof(int));
-
-    for (int i = 0; i < m; i++) {
-        b->nomes[i] = (char*) malloc(50 * sizeof(char));
-        b->valoresStr[i] = (char*) malloc(100 * sizeof(char));
+    c->n = n;
+    c->campos = (char**) malloc(n * sizeof(char*));
+    c->valores = (char**) malloc(n * sizeof(char*));
+    
+    for (int i = 0; i < n; i++) {
+        c->campos[i] = (char*) malloc(50 * sizeof(char));
+        c->valores[i] = (char*) malloc(100 * sizeof(char));
     }
-    return b;
+    
+    return c;
 }
 
 //Libera toda a memória alocada dinamicamente
-void apagar_busca(Busca **b) {
-    if (!b || !*b) return;
-    for (int i = 0; i < (*b)->m; i++) {
-        free((*b)->nomes[i]);
-        free((*b)->valoresStr[i]);
+void apagar_campos(Campos **c) {
+    if (!c || !*c) return;
+
+    for (int i = 0; i < (*c)->n; i++) {
+        free((*c)->campos[i]);
+        free((*c)->valores[i]);
     }
-    free((*b)->nomes);
-    free((*b)->valoresStr);
-    free((*b)->valoresInt);
-    free(*b);
-    *b = NULL;
+    
+    free((*c)->campos);
+    free((*c)->valores);
+    free(*c);
+    *c = NULL;
 }
 
 //Lê os m campos da entrada padrão e processa os valores
-void preencher_filtros(Busca *b) {
-    for (int i = 0; i < b->m; i++) {
-        scanf("%s", b->nomes[i]);
-        ScanQuoteString(b->valoresStr[i]); 
-
-        if (strcmp(b->valoresStr[i], "") == 0) {
-            b->valoresInt[i] = -1; 
-        } else {
-            b->valoresInt[i] = atoi(b->valoresStr[i]);
-        }
+void preencher_campos(Campos *b) {
+    for (int i = 0; i < b->n; i++) {
+        scanf("%s", b->campos[i]);
+        ScanQuoteString(b->valores[i]);
     }
 }
 
 //Verifica se o registro atual satisfaz TODOS os critérios da busca
-int registro_passa_filtrob(Registro *reg, Busca *b) {
-    for (int i = 0; i < b->m; i++) {
-        int match = 0;
-        char *nomeCampo = b->nomes[i];
+bool registro_passa_filtro(Registro *reg, Campos *c) {
+    // Verifica se o registro atende ao critério i
+    for (int i = 0; i < c->n; i++) {
+        char* criterio = c->campos[i];
+        char* valor_str = c->valores[i];
 
-        if (strcmp(nomeCampo, "codEstacao") == 0) {
-            if (reg_get_codEstacao(reg) == b->valoresInt[i]) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "nomeEstacao") == 0) {
-            char *res = reg_get_nomeEstacao(reg);
-            if (res && strcmp(res, b->valoresStr[i]) == 0) match = 1;
-            else if (!res && strcmp(b->valoresStr[i], "") == 0) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "codLinha") == 0) {
-            if (reg_get_codLinha(reg) == b->valoresInt[i]) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "nomeLinha") == 0) {
-            char *res = reg_get_nomeLinha(reg);
-            if (res && strcmp(res, b->valoresStr[i]) == 0) match = 1;
-            else if (!res && strcmp(b->valoresStr[i], "") == 0) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "codProxEstacao") == 0) {
-            if (reg_get_codProxEstacao(reg) == b->valoresInt[i]) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "distProxEstacao") == 0) {
-            if (reg_get_distProxEstacao(reg) == b->valoresInt[i]) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "codLinhaIntegra") == 0) {
-            if (reg_get_codLinhaIntegra(reg) == b->valoresInt[i]) match = 1;
-        } 
-        else if (strcmp(nomeCampo, "codEstIntegra") == 0) {
-            if (reg_get_codEstIntegra(reg) == b->valoresInt[i]) match = 1;
+        // Converte o valor para inteiro
+        int valor_inteiro;
+        
+        if(strcmp(valor_str, "") == 0)
+            valor_inteiro = -1;
+        else 
+            valor_inteiro = atoi(valor_str);
+
+        // Verifica se o critério é "codEstação"
+        if (strcmp(criterio, "codEstacao") == 0){
+            // Se for, verifica se os valores são iguais
+            if(reg_get_codEstacao(reg) == valor_inteiro) continue; // Se for passa para o próximo critério
+            return false; // Se não o registro não serve
+        }
+        
+        // Verifica se o critério é "codEstação"
+        if (strcmp(criterio, "nomeEstacao") == 0) {
+            // Se for, verifica se os valores são iguais
+            char* nomeEst = reg_get_nomeEstacao(reg);
+            if (nomeEst != NULL && strcmp(nomeEst, valor_str) == 0) continue; // Caso os valores sejam iguais vai para o próximo critério
+            else if (nomeEst == NULL && strcmp(valor_str, "") == 0) continue; // Caso os valores sejam nulos vai para o próximo critério
+            return false; // Se não o registro não serve
         }
 
-        if (!match) return 0; //se um critério falhar, o registro não serve
+        // Verifica se o critério é "codLinha"
+        if (strcmp(criterio, "codLinha") == 0){
+            if(reg_get_codLinha(reg) == valor_inteiro) continue;
+            return false;
+        }
+
+        if (strcmp(criterio, "nomeLinha") == 0) {
+            char *nomeLinha = reg_get_nomeLinha(reg);
+            if (nomeLinha && strcmp(nomeLinha, valor_str) == 0) continue; // Caso os valores sejam iguais
+            else if (!nomeLinha && strcmp(valor_str, "") == 0) continue; // Caso os valores sejam iguais
+            return false;
+        } 
+
+        if (strcmp(criterio, "codProxEstacao") == 0){
+            if(reg_get_codProxEstacao(reg) == valor_inteiro) continue;
+            return false;
+        }
+    
+        if(strcmp(criterio, "distProxEstacao") == 0){
+            if(reg_get_distProxEstacao(reg) == valor_inteiro) continue;
+            return false;
+        }
+    
+        if (strcmp(criterio, "codLinhaIntegra") == 0){
+            if (reg_get_codLinhaIntegra(reg) == valor_inteiro) continue;;
+            return false;
+        }
+    
+        if (strcmp(criterio, "codEstIntegra") == 0){
+            if (reg_get_codEstIntegra(reg) == valor_inteiro) continue;
+            return false;
+        }
+
     }
-    return 1;
+    // Se passou em todos os critérios retorna verdadeiro
+    return true;
 }
 
 void busca_parametrizada(char* nome_arquivo) {
@@ -108,17 +132,17 @@ void busca_parametrizada(char* nome_arquivo) {
         int m_filtros;
         scanf("%d", &m_filtros);
 
-        /* Cria a estrutura de busca com m campos alocados dinamicamente */
-        Busca* b = criar_busca(m_filtros);
-        preencher_filtros(b);
+        // Cria a estrutura de busca com m campos alocados dinamicamente
+        Campos* b = criar_campos(m_filtros);
+        preencher_campos(b);
 
         fseek(fp, 17, SEEK_SET); // Volta ao início dos dados (após o header de 17 bytes)
         Registro* reg;
         int encontrou = 0;
 
         while ((reg = bin_to_reg(fp)) != NULL) {
-            /* Verifica se o registo não está removido e se passa no filtro modularizado */
-            if (reg_get_removido(reg) == '0' && registro_passa_filtrob(reg, b)) {
+            // Verifica se o registo não está removido e se passa no filtro modularizado
+            if (reg_get_removido(reg) == '0' && registro_passa_filtro(reg, b)) {
                 encontrou = 1;
                 print_reg(reg);
             }
@@ -129,8 +153,8 @@ void busca_parametrizada(char* nome_arquivo) {
             printf("Registro inexistente.\n");
         }
 
-        /* Libera a memória da busca antes da próxima iteração ou fim da função */
-        apagar_busca(&b);
+        // Libera a memória da busca antes da próxima iteração ou fim da função
+        apagar_campos(&b);
         printf("\n"); 
     }
     fclose(fp);
