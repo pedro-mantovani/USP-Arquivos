@@ -7,6 +7,9 @@
     Header* criar_header();
     Header* bin_to_header(FILE* fp);
     void header_to_bin(FILE* fp, const Header* head);
+    
+    void header_print(Header* h);
+    void header_free(Header** head);
 
     // Funções de get do header
     char header_get_status(const Header* h);
@@ -21,9 +24,5 @@
     void header_set_proxRRN(Header* h, int proxRRN);
     void header_set_nroEstacoes(Header* h, int nroEstacoes);
     void header_set_nroParesEstacao(Header* h, int nroParesEstacao);
-
-    void head_print(Header* h);
-    void head_free(Header** head);
-
 
 #endif

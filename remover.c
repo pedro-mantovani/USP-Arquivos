@@ -6,11 +6,20 @@
 #include "header.h"
 #include "busca.h"
 #include "funcionalidades.h"
-#include "utilities.h"
+#include "utilitarias.h"
+
+/* 
+A função remover lê os critérios de busca, 
+percorre o arquivo binário e marca como removidos os registros que atendem aos filtros, 
+encadeando esses registros na pilha de removidos por meio do topo do header
+e dos 4 bytes seguintes ao char que indica que o registro foi removido. 
+Durante a última varredura, ela também contabiliza os nomes de estações e os pares válidos
+que permanecem no arquivo, para então atualizar o cabeçalho e salvar o arquivo como consistente. 
+*/
 
 void remover(char* nome_arquivo) {
 
-    // Abre o arquivo
+    // Abre um arquivo existente para leitura e escrita
     FILE* fp = fopen(nome_arquivo, "rb+");
     if (!verificarStatusArquivo(fp)) return;
 
@@ -24,7 +33,7 @@ void remover(char* nome_arquivo) {
     int n_remocoes;
     if (scanf("%d", &n_remocoes) != 1) {
         fclose(fp); 
-        head_free(&h); 
+        header_free(&h); 
         return;
     }
 
@@ -49,9 +58,10 @@ void remover(char* nome_arquivo) {
         long int offset;
         int topo;
         char removido = '1';
+        int proxRRN =  header_get_proxRRN(h);
 
         // Itera pelo arquivo verificando se o registro atende às condições de busca
-        for(int RRN_atual = 0; RRN_atual < header_get_proxRRN(h); RRN_atual++) {
+        for(int RRN_atual = 0; RRN_atual < proxRRN; RRN_atual++) {
 
             // Lê o registro do binário
             reg = bin_to_reg(fp);
@@ -68,7 +78,7 @@ void remover(char* nome_arquivo) {
                 // Verifica o topo atual da pilha
                 topo = header_get_topo(h);
 
-                fseek(fp, offset, SEEK_SET); // Vai para o primeiro byte offset do registro
+                fseek(fp, offset, SEEK_SET); // Vai para o primeiro byte offset do registro (que é o removido)
                 fwrite(&removido, sizeof(char), 1, fp); // Marca como removido
                 fwrite(&topo, sizeof(int), 1, fp); // Coloca nos próximos 4 bytes o topo da pilha
 
@@ -112,7 +122,7 @@ void remover(char* nome_arquivo) {
     fclose(fp);
 
     // Libera a memória do nó cabeça
-    head_free(&h);
+    header_free(&h);
     AVL_apagar(&nomes_estacoes);
     AVL_apagar(&pares_estacoes);
     BinarioNaTela(nome_arquivo); 

@@ -7,7 +7,14 @@
 #include "header.h"
 #include "busca.h"
 #include "funcionalidades.h"
-#include "utilities.h"
+#include "utilitarias.h"
+
+/* 
+A função busca_parametrizada percorre o arquivo binário,
+aplicando o filtro em cada registro e imprimindo aqueles que satisfazem as condições.
+Para isso, ela utiliza funções auxiliares que manipulam uma struct Campos,
+que armazena os campos a serem buscados e seus valores. 
+*/
 
 // Aloca a struct e os vetores internos com base no n fornecido (número de campos)
 Campos* criar_campos(int n) {
@@ -122,17 +129,19 @@ bool registro_passa_filtro(Registro *reg, Campos *c) {
 
 // Função principal da busca
 void busca_parametrizada(char* nome_arquivo) {
-    // Abre o arquivo
+
+    // Abre o arquivo existente para leitura
     FILE* fp = fopen(nome_arquivo, "rb");
     if(!verificarStatusArquivo(fp)) return;
 
+    //Lê quantas buscas serão feitas
     int n_buscas;
     if (scanf("%d", &n_buscas) != 1) {
         fclose(fp);
         return;
     }
 
-    // Realiza n buscas
+    // Para cada busca faz as operações necessárias
     while (n_buscas--) {
 
         // Lê os m filtros
@@ -141,7 +150,7 @@ void busca_parametrizada(char* nome_arquivo) {
 
         // Cria a estrutura de busca com m campos alocados dinamicamente
         Campos* b = criar_campos(m_filtros);
-        preencher_campos(b);
+        preencher_campos(b);    //faz a leitura dos campos e valores
 
         Registro* reg; // Cria um registro temporário
         int encontrou = 0; // Cria uma flag para verificar se algum registro foi encontrado

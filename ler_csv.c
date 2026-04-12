@@ -5,17 +5,26 @@
 #include "registro.h"
 #include "header.h"
 #include "funcionalidades.h"
-#include "utilities.h"
+#include "utilitarias.h"
 
-//funcionalidade 1: leitura de csv e escrita em binário
+/* 
+A função ler_csv lê um arquivo CSV linha por linha, 
+separa os valores de cada coluna e preenche uma struct Registro. 
+Cada registro é escrito no arquivo binário, 
+enquanto estruturas AVL são usadas para armazenar nomes de estações e pares únicos. 
+Ao final, o cabeçalho é atualizado com as informações calculadas 
+e o arquivo é salvo como consistente. 
+*/
+
 void ler_csv(char* arquivo_csv, char* arquivo_bin){
     
-    // Abre o arquivo
+    // Abre o arquivo csv para leitura
     FILE* fp_csv = fopen(arquivo_csv, "r");
     if(fp_csv == NULL){
         printf("Falha no processamento do arquivo.\n");
         return;
     }
+    // Cria um arquivo binário para escrita
     FILE* fp_bin = fopen(arquivo_bin, "wb");
     if(fp_bin == NULL){
         printf("Falha no processamento do arquivo.\n");
@@ -32,9 +41,9 @@ void ler_csv(char* arquivo_csv, char* arquivo_bin){
     char* ptr; // Ponteiro pa percorrer cada linha da tabela
     char* token; // Células da tabela
     int nroRegistos = 0; // Número de registros lidos
-    int paresEstacoes = 0; // Número de pares de estação (valore não nulos do codProxEstacao)
     Registro* reg_temp = criar_registro(); // Registro temporário
-    AVL* nomesEstacoes = AVL_criar(); // AVL para armazenar os nomes únicos
+    AVL* nomesEstacoes = AVL_criar(); // AVL para armazenar os nomes das estações
+    AVL* paresEstacoes = AVL_criar(); // AVL para armazenar os pares de estações
 
     if (fp_csv == NULL) return;
 
@@ -59,9 +68,10 @@ void ler_csv(char* arquivo_csv, char* arquivo_bin){
         token = strsep(&ptr, ",");
         reg_set_tamNomeEstacao(reg_temp, strlen(token));
         reg_set_nomeEstacao(reg_temp, token);
-        AVL_inserir(nomesEstacoes, token);
+        AVL_inserir(nomesEstacoes, token); // Insere o nome na AVL
 
-        reg_set_codLinha(reg_temp, convert_num(strsep(&ptr, ",")));
+        token = strsep(&ptr, ",");
+        reg_set_codLinha(reg_temp, convert_num(token));
 
         token = strsep(&ptr, ",");
         reg_set_tamNomeLinha(reg_temp, strlen(token));
@@ -69,15 +79,20 @@ void ler_csv(char* arquivo_csv, char* arquivo_bin){
 
         token = strsep(&ptr, ",");
         reg_set_codProxEstacao(reg_temp, convert_num(token));
-        // Se a string não é vazia incrementa o número de pares das estações
-        if(token[0] != '\0')
-            paresEstacoes ++;
+        // Transformma o par da estação em uma string do tipo "a,b" com a < b
+        char pair[20];
+        criar_par(reg_temp, pair); // Cria a string do par
+        if(pair[0] != '\0') // Caso ela seja válida insere na AVL
+        AVL_inserir(paresEstacoes, pair);
 
-        reg_set_distProxEstacao(reg_temp, convert_num(strsep(&ptr, ",")));
+        token = strsep(&ptr, ",");   
+        reg_set_distProxEstacao(reg_temp, convert_num(token));
 
-        reg_set_codLinhaIntegra(reg_temp, convert_num(strsep(&ptr, ",")));
+        token = strsep(&ptr, ",");
+        reg_set_codLinhaIntegra(reg_temp, convert_num(token));
         
-        reg_set_codEstIntegra(reg_temp, convert_num(strsep(&ptr, ",")));
+        token = strsep(&ptr, ",");
+        reg_set_codEstIntegra(reg_temp, convert_num(token));
 
         // Salva o registro no arquivo binário
         // Note que o byteoffset passado para a função é -1
@@ -88,12 +103,12 @@ void ler_csv(char* arquivo_csv, char* arquivo_bin){
         nroRegistos ++;
     }
 
-    // Fecha o arquivo
+    // Fecha o arquivo csv
     fclose(fp_csv);
 
     // Atualiza os campos do cabeçalho
     header_set_nroEstacoes(head, AVL_tamanho(nomesEstacoes));
-    header_set_nroParesEstacao(head, paresEstacoes);
+    header_set_nroParesEstacao(head, AVL_tamanho(paresEstacoes));
     header_set_proxRRN(head, nroRegistos);
     header_set_status(head, '1');
     // Salva o cabeçalho no arquivo binário
@@ -101,10 +116,11 @@ void ler_csv(char* arquivo_csv, char* arquivo_bin){
     
     // Libera as memórias alocadas
     reg_free(&reg_temp);
-    head_free(&head);
+    header_free(&head);
     AVL_apagar(&nomesEstacoes);
+    AVL_apagar(&paresEstacoes);
 
-    // Fecha o arquivo
+    // Fecha o arquivo binário
     fclose(fp_bin);
 
     // Utiliza a função BinarioNaTela

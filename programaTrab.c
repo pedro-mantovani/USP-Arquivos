@@ -17,7 +17,7 @@ int main(){
 
     case 2: // Impressão de todos os registros do arquivo binário
         scanf("%s", arquivo_bin);
-        select_all(arquivo_bin);
+        mostrar_todos(arquivo_bin);
         break;
 
     case 3: // Recuperacao de registros do arquivo binário por campo 

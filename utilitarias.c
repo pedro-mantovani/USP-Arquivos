@@ -6,8 +6,11 @@
 #include "registro.h"
 #include "header.h"
 #include "busca.h"
-#include "utilities.h"
+#include "utilitarias.h"
 
+/*
+Funções fornecidas
+*/
 void BinarioNaTela(char *arquivo) {
     FILE *fs;
     if (arquivo == NULL || !(fs = fopen(arquivo, "rb"))) {
@@ -62,6 +65,7 @@ void ScanQuoteString(char *str) {
     }
 }
 
+// Função para converter uma string para número
 int convert_num(char* str_num){
     if(str_num == NULL || *str_num == '\0')
         return -1;
@@ -69,6 +73,7 @@ int convert_num(char* str_num){
         return atoi(str_num);
 }
 
+// Função calcular o byte offset correspondente a determinado RRN
 long int RRN_to_offset(int RRN){
     return RRN*reg_tam + header_tam;
 }
@@ -81,7 +86,7 @@ void criar_par(Registro* reg, char* pair){
         return;
     }
 
-    // cria uma string do tipo "menor,maior"
+    // Cria uma string do tipo "a,b", com a < b
     if (reg_get_codEstacao(reg) < reg_get_codProxEstacao(reg))
         snprintf(pair, 20, "%d,%d", reg_get_codEstacao(reg), reg_get_codProxEstacao(reg));
     else
@@ -108,6 +113,7 @@ int verificarStatusArquivo(FILE* fp) {
     return 1;
 }
 
+// Função para ler um valor inteiro
 int scan_int(){
     char valor[50];
     int valor_inteiro;

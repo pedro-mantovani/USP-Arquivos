@@ -6,9 +6,17 @@
 #include "header.h"
 #include "busca.h"
 #include "funcionalidades.h"
-#include "utilities.h"
+#include "utilitarias.h"
+
+/* 
+A função atualizar cria duas structs Campos, uma para os critérios de busca e outra para os campos a serem atualizados. 
+Cada registro é verificado por uma função de filtro e, se satisfizer as condições, é enviado para atualizar_registro,
+nela seus campos são modificados com base nos novos valores e, em seguida, 
+o registro atualizado é escrito de volta no arquivo binário. 
+*/
 
 void atualizar_registro(Registro *reg, Campos *c) {
+
     // Atualiza critério por critério
     for (int i = 0; i < c->n; i++) {
         char* criterio = c->campos[i];
@@ -81,6 +89,7 @@ void atualizar_registro(Registro *reg, Campos *c) {
 
 void atualizar(char* nome_arquivo) {
     
+    // Abre um arquivo existente para leitura e escrita
     FILE* fp = fopen(nome_arquivo, "rb+");
     if (!verificarStatusArquivo(fp)) return;
 
@@ -90,34 +99,37 @@ void atualizar(char* nome_arquivo) {
     fwrite(&inconsistente, sizeof(char), 1, fp); // Coloca '0' no primeiro byte
     Header* h = bin_to_header(fp); 
 
+    // Lê o número de atualizações
     int n_atualizacoes;
     if (scanf("%d", &n_atualizacoes) != 1) {
         fclose(fp); 
-        head_free(&h); 
+        header_free(&h); 
         return;
     }
 
     int novos_pares = 0;
     while (n_atualizacoes--) {
+        // Lê os filtros da busca
         int m_filtros; 
         scanf("%d", &m_filtros);
 
         Campos* c_busca = criar_campos(m_filtros);
         preencher_campos(c_busca);
 
+        // Lê os campos que serão atualizados
         int p_campos;
         scanf("%d", &p_campos);
 
         Campos* c_atualizar = criar_campos(p_campos);
         preencher_campos(c_atualizar);
 
-
         fseek(fp, header_tam, SEEK_SET); // Vai até o início dos registros
-        Registro* reg;
-        long int offset;
+        Registro* reg; // Declara um registro temporário
+        long int offset; // Declara uma variável para armazenar o offset do registro atual
+        int prox_RRN = header_get_proxRRN(h);
         
         // Itera pelo arquivo verificando se o registro atende às condições de busca
-        for(int RRN_atual = 0; RRN_atual < header_get_proxRRN(h); RRN_atual++) {
+        for(int RRN_atual = 0; RRN_atual < prox_RRN; RRN_atual++) {
 
             // Lê o registro do binário
             reg = bin_to_reg(fp);
@@ -162,6 +174,6 @@ void atualizar(char* nome_arquivo) {
     fclose(fp);
 
     // Libera a memória do nó cabeça
-    head_free(&h);
+    header_free(&h);
     BinarioNaTela(nome_arquivo); 
 }

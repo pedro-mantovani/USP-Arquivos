@@ -6,11 +6,18 @@
 #include "header.h"
 #include "busca.h"
 #include "funcionalidades.h"
-#include "utilities.h"
+#include "utilitarias.h"
+
+/* 
+A função inserir lê os dados de novos registros e preenche cada campo de uma struct Registro. 
+Para cada inserção, ela verifica se existe espaço disponível na pilha de registros removidos; 
+se existir, reutiliza esse espaço, caso contrário insere no fim do arquivo. 
+Depois, escreve o registro no binário e atualiza o header com as informações necessárias. 
+*/
 
 void inserir(char* nome_arquivo){
 
-    // Abre o arquivo
+    // Abre um arquivo existente para leitura e escrita
     FILE* fp = fopen(nome_arquivo, "rb+");
     if (!verificarStatusArquivo(fp)) return;
 
@@ -24,7 +31,7 @@ void inserir(char* nome_arquivo){
     int n_insercoes;
     if (scanf("%d", &n_insercoes) != 1) {
         fclose(fp); 
-        head_free(&h); 
+        header_free(&h); 
         return;
     }
 
@@ -98,7 +105,7 @@ void inserir(char* nome_arquivo){
     header_set_nroParesEstacao(h, header_get_nroParesEstacao(h) + novosPares);
     header_set_status(h, '1'); 
     header_to_bin(fp, h);
-    head_free(&h);
+    header_free(&h);
 
     fclose(fp); // Fecha o arquivo
     BinarioNaTela(nome_arquivo);

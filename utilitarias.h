@@ -1,5 +1,5 @@
-#ifndef UTILITIES_H
-    #define UTILITIES_H
+#ifndef UTILITARIAS_H
+    #define UTILITARIAS_H
 
     void BinarioNaTela(char *arquivo);
     void ScanQuoteString(char *str);

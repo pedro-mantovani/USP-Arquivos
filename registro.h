@@ -2,19 +2,18 @@
     #define REGISTRO_H
 
     typedef struct registro Registro;
-    typedef struct header Header;
 
     #define reg_tam 80 // Tamanho em bytes do registro
-    #define valor_comparavel -3 // Como a busca é a função 3, -3 foi o valor escolhido para representar um valor não alterado
 
     Registro* criar_registro();
-    Header* criar_header();
 
-    Registro* ler_registro(FILE* f);
     Registro* bin_to_reg(FILE* fp);
     void reg_to_bin(Registro* reg, FILE* fp, long int offset);
 
+    void print_reg(Registro* reg);
 
+    void reg_free(Registro** reg);
+    
     // Funções de get dos registros
     char reg_get_removido(Registro* reg);
     int reg_get_proximo(Registro* reg);
@@ -30,7 +29,6 @@
     char* reg_get_nomeLinha(Registro* reg);
 
     // Funções de set dos registros
-    void remover_registro(Registro* reg);
     void reg_set_proximo(Registro* reg, int proximo);
     void reg_set_codEstacao(Registro* reg, int codEstacao);
     void reg_set_codLinha(Registro* reg, int codLinha);
@@ -43,24 +41,5 @@
     void reg_set_tamNomeLinha(Registro* reg, int tamNomeLinha);
     void reg_set_nomeLinha(Registro* reg, char* nomeLinha);
     void reg_set_removido(Registro* reg, char removido);
-
-    // Funções de get do header
-    char header_get_status(const Header* h);
-    int header_get_topo(const Header* h);
-    int header_get_proxRRN(const Header* h);
-    int header_get_nroEstacoes(const Header* h);
-    int header_get_nroParesEstacao(const Header* h);
-
-    // Funções de set do header
-    void header_set_status(Header* h, char status);
-    void header_set_topo(Header* h, int topo);
-    void header_set_proxRRN(Header* h, int proxRRN);
-    void header_set_nroEstacoes(Header* h, int nroEstacoes);
-    void header_set_nroParesEstacao(Header* h, int nroParesEstacao);
-
-    void print_reg(Registro* reg);
-
-    void reg_free(Registro** reg);
-    void head_free(Header** head);
 
 #endif
