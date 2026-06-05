@@ -1,9 +1,11 @@
 #ifndef REGISTRO_H
     #define REGISTRO_H
 
+    #include <stdio.h>
+    
     typedef struct registro Registro;
 
-    #define reg_tam 80 // Tamanho em bytes do registro
+    #define tam_reg 80 // Tamanho em bytes do registro
 
     Registro* criar_registro();
 

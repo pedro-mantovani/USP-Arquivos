@@ -7,5 +7,6 @@
     void remover(char* nome_arquivo);
     void inserir(char* nome_arquivo);
     void atualizar(char* nome_arquivo);
+    void criar_arvore(char* arquivo_dados, char* arquivo_arvore);
 
 #endif

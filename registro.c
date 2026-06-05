@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "registro.h"
@@ -49,11 +48,6 @@ Registro* criar_registro(){
 
 // Função para colocar um registro no arquivo binário
 void reg_to_bin(Registro* reg, FILE* fp, long int offset){
-    char c;
-    int x;
-    char* s;
-    int bytes_lixo = 43; // Número máximo de bytes de lixo (80 - campos fixos)
-
     if (fp == NULL || reg == NULL) return;
 
     // Caso a posição passada seja -1 não é feito o seek e o registro é colocado na posição atual do ponteiro
@@ -61,50 +55,28 @@ void reg_to_bin(Registro* reg, FILE* fp, long int offset){
         fseek(fp, offset, SEEK_SET); // Caso contrário ele vai para o byte offset passado como parâmetro
 
     // Coloca os campos do registro no arquivo binário
-    c = reg_get_removido(reg);
-    fwrite(&c, sizeof(char), 1, fp);
-
-    x = reg_get_proximo(reg);
-    fwrite(&x, sizeof(int), 1, fp);
-
-    x = reg_get_codEstacao(reg);
-    fwrite(&x, sizeof(int), 1, fp);
-
-    x = reg_get_codLinha(reg);
-    fwrite(&x, sizeof(int), 1, fp);
-
-    x = reg_get_codProxEstacao(reg);
-    fwrite(&x, sizeof(int), 1, fp);
-
-    x = reg_get_distProxEstacao(reg);
-    fwrite(&x, sizeof(int), 1, fp);
-
-    x = reg_get_codLinhaIntegra(reg);
-    fwrite(&x, sizeof(int), 1, fp);
-
-    x = reg_get_codEstIntegra(reg);
-    fwrite(&x, sizeof(int), 1, fp);
-
-    x = reg_get_tamNomeEstacao(reg);
-    bytes_lixo -= x; // Tira do lixo os bytes do nome da estação
-    fwrite(&x, sizeof(int), 1, fp);
-
-    s = reg_get_nomeEstacao(reg);
-    if (x > 0 && s != NULL)
-        fwrite(s, sizeof(char), x, fp);
-
-    x = reg_get_tamNomeLinha(reg);
-    bytes_lixo -= x; // Tira do lixo os bytes da linha
-    fwrite(&x, sizeof(int), 1, fp);
-
-    s = reg_get_nomeLinha(reg);
-    if (x > 0 && s != NULL)
-        fwrite(s, sizeof(char), x, fp);
+    fwrite(&(reg->removido), sizeof(char), 1, fp);
+    fwrite(&(reg->proximo), sizeof(int), 1, fp);
+    fwrite(&(reg->codEstacao), sizeof(int), 1, fp);
+    fwrite(&(reg->codLinha), sizeof(int), 1, fp);
+    fwrite(&(reg->codProxEstacao), sizeof(int), 1, fp);
+    fwrite(&(reg->distProxEstacao), sizeof(int), 1, fp);
+    fwrite(&(reg->codLinhaIntegra), sizeof(int), 1, fp);
+    fwrite(&(reg->codEstIntegra), sizeof(int), 1, fp);
+    
+    fwrite(&(reg->tamNomeEstacao), sizeof(int), 1, fp);
+    if(reg->tamNomeEstacao > 0)
+        fwrite(reg->nomeEstacao, sizeof(char), reg->tamNomeEstacao, fp);
+    
+    fwrite(&(reg->tamNomeLinha), sizeof(int), 1, fp);
+    if(reg->tamNomeLinha > 0)
+        fwrite(reg->nomeLinha, sizeof(char), reg->tamNomeLinha, fp);
 
     // preenche o espaço restante com lixo ('$')
-    char* lixo = malloc(sizeof(char)*bytes_lixo);
-    memset(lixo, '$', bytes_lixo);
-    fwrite(lixo, sizeof(char), bytes_lixo, fp);
+    int tamLixo = 43-reg->tamNomeEstacao-reg->tamNomeLinha;
+    char* lixo = malloc(sizeof(char)*tamLixo);
+    memset(lixo, '$', tamLixo);
+    fwrite(lixo, sizeof(char), tamLixo, fp);
     free(lixo);
 }
 

@@ -1,7 +1,9 @@
 #ifndef HEADER_H
     #define HEADER_H
 
-    #define header_tam 17
+    #include <stdio.h>
+
+    #define tam_header 17
     typedef struct header Header;
 
     Header* criar_header();

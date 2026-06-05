@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include "AVL.h"
 #include "registro.h"
@@ -51,7 +50,7 @@ void remover(char* nome_arquivo) {
         Campos* c_busca = criar_campos(m_filtros);
         preencher_campos(c_busca);
 
-        fseek(fp, header_tam, SEEK_SET); // Vai até o início dos registros
+        fseek(fp, tam_header, SEEK_SET); // Vai até o início dos registros
         
         // Declara as variáveis que serão usadas no loop
         Registro* reg;

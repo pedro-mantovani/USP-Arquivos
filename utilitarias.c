@@ -2,10 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "AVL.h"
-#include "registro.h"
 #include "header.h"
-#include "busca.h"
 #include "utilitarias.h"
 
 /*
@@ -65,6 +62,8 @@ void ScanQuoteString(char *str) {
     }
 }
 
+// ----------------------------------------------
+
 // Função para converter uma string para número
 int convert_num(char* str_num){
     if(str_num == NULL || *str_num == '\0')
@@ -75,7 +74,7 @@ int convert_num(char* str_num){
 
 // Função calcular o byte offset correspondente a determinado RRN
 long int RRN_to_offset(int RRN){
-    return RRN*reg_tam + header_tam;
+    return RRN*tam_reg + tam_header;
 }
 
 // Cria uma string que representa um par de estação

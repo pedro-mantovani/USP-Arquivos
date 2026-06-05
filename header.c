@@ -44,9 +44,18 @@ void header_to_bin(FILE* fp, const Header* head){
     fwrite(&(head->nroParesEstacao), sizeof(int), 1, fp);
 }
 
-// Função para ler o cabeçalho de um arquivo binário
+/*
+Função para ler o cabeçalho de um arquivo de dados
+Sempre cria uma struct de cabeçalho
+Sempre coloca o ponteiro no início do arquivo antes de ler
+Recebe como parâmetro apenas o ponteiro para o arquivo
+*/
 Header* bin_to_header(FILE* fp) {
+    if (fp == NULL) return NULL; // Verifica se ponteiro para o arquivo é válido
+
     Header* head = criar_header(); // Aloca a struct
+    if(head == NULL) return NULL;
+    
     fseek(fp, 0, SEEK_SET); // Coloca o ponteiro no início do arquivo
 
     // Preenche os campos da struct

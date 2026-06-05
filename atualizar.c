@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "AVL.h"
 #include "registro.h"
 #include "header.h"
 #include "busca.h"
@@ -123,7 +122,7 @@ void atualizar(char* nome_arquivo) {
         Campos* c_atualizar = criar_campos(p_campos);
         preencher_campos(c_atualizar);
 
-        fseek(fp, header_tam, SEEK_SET); // Vai até o início dos registros
+        fseek(fp, tam_header, SEEK_SET); // Vai até o início dos registros
         Registro* reg; // Declara um registro temporário
         long int offset; // Declara uma variável para armazenar o offset do registro atual
         int prox_RRN = header_get_proxRRN(h);

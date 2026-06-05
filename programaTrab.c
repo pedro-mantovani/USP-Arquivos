@@ -1,7 +1,11 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include "funcionalidades.h"
-#include "busca.h"
+
+/*
+Alunos:
+Pedro Otavio Mantovani - N° USP: 16896987
+Beatriz Aredes Texeira - N° USP: 16856317
+*/
 
 int main(){
     int option;
@@ -40,6 +44,13 @@ int main(){
         atualizar(arquivo_bin);
         break;  
     
+    case 7: // Escrita da árvore B com base em um arquivo binário
+        char arquivo_dados[100];
+        scanf("%s", arquivo_dados);
+        scanf("%s", arquivo_bin);
+        criar_arvore(arquivo_dados, arquivo_bin);
+        break;
+
     default:
         break;
     }

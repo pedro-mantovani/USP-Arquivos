@@ -1,10 +1,7 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include "AVL.h"
 #include "registro.h"
 #include "header.h"
-#include "busca.h"
 #include "funcionalidades.h"
 #include "utilitarias.h"
 
@@ -27,7 +24,7 @@ void mostrar_todos(char* nome_arquivo) {
     fread(&totalRRN, sizeof(int), 1, fp);
 
     // Pula para o primeiro registro
-    fseek(fp, header_tam, SEEK_SET);
+    fseek(fp, tam_header, SEEK_SET);
 
     Registro* reg; // Cria um registro temporário
     int registros_lidos = 0;

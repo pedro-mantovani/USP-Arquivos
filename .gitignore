@@ -1,8 +1,8 @@
 ./vscode
 *.txt
 *.bin
-*.js
-main
+./modelos
+programaTrab
 fornecidas.c
 *.csv
 *.zip

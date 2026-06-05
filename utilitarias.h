@@ -1,6 +1,8 @@
 #ifndef UTILITARIAS_H
     #define UTILITARIAS_H
 
+    #include "registro.h"
+
     void BinarioNaTela(char *arquivo);
     void ScanQuoteString(char *str);
     int convert_num(char* str_num);

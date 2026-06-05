@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "AVL.h"
 #include "registro.h"
 #include "header.h"
 #include "busca.h"
@@ -160,7 +159,7 @@ void busca_parametrizada(char* nome_arquivo) {
         int proxRRN;
         fread(&proxRRN, sizeof(int), 1, fp);
 
-        fseek(fp, header_tam, SEEK_SET); // Volta ao início dos dados (após o header de 17 bytes)
+        fseek(fp, tam_header, SEEK_SET); // Volta ao início dos dados (após o header de 17 bytes)
         
 
         // Percorre todos os registros
