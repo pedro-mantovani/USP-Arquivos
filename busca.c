@@ -56,7 +56,10 @@ void preencher_campos(Campos *b) {
 }
 
 //Verifica se o registro atual satisfaz TODOS os critérios da busca
-bool registro_passa_filtro(Registro *reg, Campos *c) {
+int registro_passa_filtro(Registro *reg, Campos *c) {
+
+    int ehid = 1;   //variavel para controle de codigo unico, para parar a busca
+
     // Verifica se o registro atende ao critério i
     for (int i = 0; i < c->n; i++) {
         char* criterio = c->campos[i];
@@ -73,8 +76,11 @@ bool registro_passa_filtro(Registro *reg, Campos *c) {
         // Verifica se o critério é "codEstação"
         if (strcmp(criterio, "codEstacao") == 0){
             // Se for, verifica se os valores são iguais
-            if(reg_get_codEstacao(reg) == valor_inteiro) continue; // Se for passa para o próximo critério
-            return false; // Se não o registro não serve
+            if(reg_get_codEstacao(reg) == valor_inteiro){
+                ehid = 2;   //2 sera o retorno da função caso ache o id, para a que a busca reconheça e seja parada na principal
+                continue; // Se for passa para o próximo critério
+            }   
+            return 0; // Se não o registro não serve
         }
         
         // Verifica se o critério é "codEstação"
@@ -83,47 +89,49 @@ bool registro_passa_filtro(Registro *reg, Campos *c) {
             char* nomeEst = reg_get_nomeEstacao(reg);
             if (nomeEst != NULL && strcmp(nomeEst, valor_str) == 0) continue; // Caso os valores sejam iguais vai para o próximo critério
             else if (nomeEst == NULL && strcmp(valor_str, "") == 0) continue; // Caso os valores sejam nulos vai para o próximo critério
-            return false; // Se não o registro não serve
+            return 0; // Se não o registro não serve
         }
 
         if (strcmp(criterio, "codLinha") == 0){
             if(reg_get_codLinha(reg) == valor_inteiro) continue;
-            return false;
+            return 0;
         }
 
         if (strcmp(criterio, "nomeLinha") == 0) {
             char *nomeLinha = reg_get_nomeLinha(reg);
             if (nomeLinha && strcmp(nomeLinha, valor_str) == 0) continue; // Caso os valores sejam iguais
             else if (!nomeLinha && strcmp(valor_str, "") == 0) continue; // Caso os valores sejam iguais
-            return false;
+            return 0;
         } 
 
         if (strcmp(criterio, "codProxEstacao") == 0){
             if(reg_get_codProxEstacao(reg) == valor_inteiro) continue;
-            return false;
+            return 0;
         }
     
         if(strcmp(criterio, "distProxEstacao") == 0){
             if(reg_get_distProxEstacao(reg) == valor_inteiro) continue;
-            return false;
+            return 0;
         }
     
         if (strcmp(criterio, "codLinhaIntegra") == 0){
             if (reg_get_codLinhaIntegra(reg) == valor_inteiro) continue;;
-            return false;
+            return 0;
         }
     
         if (strcmp(criterio, "codEstIntegra") == 0){
             if (reg_get_codEstIntegra(reg) == valor_inteiro) continue;
-            return false;
+            return 0;
         }
 
         // Critério não encontrado
-        return false;
+        return 0;
     }
 
-    // Se passou em todos os critérios retorna verdadeiro
-    return true;
+    // Se passou em todos os critérios retorna a variavel ehid
+    // Caso valha 1 - verdadeiro, achou o registro mas nao tem codigo unico na busca
+    // Caso valha 2 - verdadeiro MAS um campo de busca era codigo, logo é um sinal para parar a busca
+    return ehid;
 }
 
 // Função principal da busca
@@ -172,15 +180,21 @@ void busca_parametrizada(char* nome_arquivo) {
             if(reg == NULL) continue;
 
             // Verifica se o registo passa no filtro
-            if (registro_passa_filtro(reg, b)) {
-                encontrou = 1; // Atualiza a flag
+            // 0 - nao passa (continua a buca)
+            // 1 - passa (continua a busca)
+            // 2 - passa E a busca é por codigo (para a busca)
+            int controle = registro_passa_filtro(reg, b); 
+            if (controle > 0) {
+                encontrou = 1;
                 print_reg(reg); // Imprime o registro
             }
 
             reg_free(&reg); // Libera a memória alocada
+
+            if(controle == 2) break;   //se encontrou um registro e a busca envolvia codigo unico, para de procurar
         }
 
-        if (!encontrou) {
+        if (encontrou == 0) {
             printf("Registro inexistente.\n");
         }
 
