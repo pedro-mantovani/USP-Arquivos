@@ -11,9 +11,9 @@
     #define tam_arv_head 17
 
     // Define tamanhos básicos com base no número de filhos
-    #define nro_chaves nro_filhos-1
-    #define tam_arv_no 17+12*nro_chaves
-    #define min_chaves (int)ceil(nro_filhos/2.0) - 1
+    #define nro_chaves (nro_filhos-1)
+    #define tam_arv_no (17+12*nro_chaves)
+    #define min_chaves ((int)ceil(nro_filhos/2.0) - 1)
 
     // Define as estruturas
     typedef struct arv_no Arv_no;
@@ -34,6 +34,9 @@
     // Funções de get
     int arv_head_get_nroNos(const Arv_head* h);
     
+    // Função de busca
+    int arv_busca_chave(FILE* fp_arvore, int chave_buscada);
+
     // Funções de liberar memória
     void arv_no_free(Arv_no** no);
     void arv_head_free(Arv_head** head);

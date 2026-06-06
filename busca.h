@@ -13,7 +13,7 @@
     Campos* criar_campos(int n);
     void apagar_campos(Campos **c);
 
-    void preencher_campos(Campos *c);
+    int preencher_campos(Campos *c);
     int registro_passa_filtro(Registro *reg, Campos *c);
 
 #endif

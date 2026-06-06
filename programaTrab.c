@@ -3,8 +3,8 @@
 
 /*
 Alunos:
-Pedro Otavio Mantovani - N° USP: 16896987
 Beatriz Aredes Texeira - N° USP: 16856317
+Pedro Otavio Mantovani - N° USP: 16896987
 */
 
 int main(){
@@ -49,6 +49,13 @@ int main(){
         scanf("%s", arquivo_dados);
         scanf("%s", arquivo_bin);
         criar_arvore(arquivo_dados, arquivo_bin);
+        break;
+
+    case 8: // Recuperacao de registros do arquivo binário por campo 
+        char arquivo_arv[100];
+        scanf("%s", arquivo_bin); 
+        scanf("%s", arquivo_arv); 
+        busca_parametrizada_nova(arquivo_bin, arquivo_arv);
         break;
 
     default:

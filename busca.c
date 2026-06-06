@@ -7,6 +7,7 @@
 #include "busca.h"
 #include "funcionalidades.h"
 #include "utilitarias.h"
+#include "arvoreB.h"
 
 /* 
 A função busca_parametrizada percorre o arquivo binário,
@@ -47,12 +48,22 @@ void apagar_campos(Campos **c) {
     *c = NULL;
 }
 
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Lê os n campos da entrada padrão e processa os valores
-void preencher_campos(Campos *b) {
+// Se um dos campos for o codEstação retorna 1, se não retorna 0
+int preencher_campos(Campos *b) {
+    int temcod = -1;
+
     for (int i = 0; i < b->n; i++) {
         scanf("%s", b->campos[i]);
         ScanQuoteString(b->valores[i]);
+
+        if (strcmp(b->campos[i], "codEstacao") == 0) {
+            temcod = atoi(b->valores[i]);
+        }
     }
+
+    return temcod;
 }
 
 //Verifica se o registro atual satisfaz TODOS os critérios da busca
@@ -203,4 +214,110 @@ void busca_parametrizada(char* nome_arquivo) {
         printf("\n"); 
     }
     fclose(fp);
+}
+
+void busca_parametrizada_nova(char* arquivo_dados, char* arquivo_indice) {
+    // Abre o arquivo existente para leitura
+    FILE* fp_dados = fopen(arquivo_dados, "rb");
+    if(!verificarStatusArquivo(fp_dados)) return;
+    
+    //Lê quantas buscas serão feitas
+    int n_buscas;
+    if (scanf("%d", &n_buscas) != 1) {
+        fclose(fp_dados);
+        return;
+    }
+
+    while(n_buscas--){
+
+        // Lê os m filtros
+        int m_filtros;
+        scanf("%d", &m_filtros);
+
+        // Cria a estrutura de busca com m campos alocados dinamicamente
+        Campos* b = criar_campos(m_filtros);
+
+        // Faz a leitura dos campos e valores e reconhece se existe ou não o campo codEstacao como um dos criterios de busca (-1 se não tiver)
+        int ehCodigo = preencher_campos(b);  
+
+        int encontrou = 0; // Cria uma flag para verificar se algum registro foi encontrado
+
+        // Se o codEstacao é um campo da busca, então faz a busca por indice arvore B
+        if (ehCodigo != -1) {
+            FILE* fp_indice = fopen(arquivo_indice, "rb");
+            if (fp_indice == NULL) {
+                printf("Falha no processamento do arquivo.\n");
+                fclose(fp_dados);
+                apagar_campos(&b);
+                return;
+            }
+
+            int byte_offset = arv_busca_chave(fp_indice, ehCodigo);
+            fclose(fp_indice);
+
+            if (byte_offset != -1) {
+                // Posiciona o ponteiro de leitura diretamente no byte offset recuperado da Árvore-B
+                fseek(fp_dados, byte_offset, SEEK_SET);
+                Registro* reg = bin_to_reg(fp_dados);
+            
+                // Verifica se o registro existe e não foi logicamente removido
+                if (reg != NULL && reg_get_removido(reg) != '1') {
+                    // Testa os outros campos passados na busca
+                    int controle = registro_passa_filtro(reg, b);
+                    if (controle > 0) {
+                        encontrou = 1;
+                        print_reg(reg);
+                    }
+                }
+                reg_free(&reg);
+            }
+
+        } else {
+
+            Registro* reg; // Cria um registro temporário
+
+            // Lê o próximo RRN do registro
+            fseek(fp_dados, 5, SEEK_SET);
+            int proxRRN;
+            fread(&proxRRN, sizeof(int), 1, fp_dados);
+
+            fseek(fp_dados, tam_header, SEEK_SET); // Volta ao início dos dados (após o header de 17 bytes)
+        
+
+            // Percorre todos os registros
+            for(int RRN_atual = 0; RRN_atual < proxRRN; RRN_atual ++) {
+            
+                // Lê o registro
+                reg = bin_to_reg(fp_dados);
+
+                // Ignora registros removidos
+                if(reg == NULL) continue;
+
+                // Verifica se o registo passa no filtro
+                // 0 - nao passa (continua a buca)
+                // 1 - passa (continua a busca)
+                // 2 - passa E a busca é por codigo (para a busca)
+                int controle = registro_passa_filtro(reg, b); 
+                if (controle > 0) {
+                    encontrou = 1;
+                    print_reg(reg); // Imprime o registro
+                }
+
+                reg_free(&reg); // Libera a memória alocada
+
+                if(controle == 2) break;   //se encontrou um registro e a busca envolvia codigo unico, para de procurar
+            }
+        }
+
+        if (encontrou == 0) {
+            printf("Registro inexistente.\n");
+        }
+
+        // Libera a memória alocada para armazenar os campos antes da próxima iteração ou fim da função
+        apagar_campos(&b);
+        printf("\n");
+
+    }
+
+    fclose(fp_dados);
 }
