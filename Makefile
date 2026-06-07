@@ -1,5 +1,6 @@
 all:
 	make compile
+	make run
 
 run:
 	./programaTrab
@@ -11,10 +12,10 @@ clean:
 	rm -f main *.bin
 
 compile:
-	gcc *.c -o programaTrab -Wall
+	gcc *.c -o programaTrab -lm -Wall
 
 compile_val:
-	gcc -O0 *.c -o programaTrab -Wall
+	gcc -O0 *.c -o programaTrab -lm -Wall
 
 zip:
 	zip proj1.zip *.c *.h Makefile

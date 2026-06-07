@@ -9,9 +9,6 @@ POO: COLOCAR A EXPLICAÇÃO BEM BONITA DEPOIS
 */
 
 void criar_arvore(char* arquivo_dados, char* arquivo_arvore){
-
-    printf("%d", min_chaves);
-
     // Abre o arquivo binário de dados para leitura
     FILE* fp = fopen(arquivo_dados, "rb");
 

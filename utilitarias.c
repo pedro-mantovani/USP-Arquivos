@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "arvoreB.h"
 #include "header.h"
 #include "utilitarias.h"
 
@@ -77,6 +79,11 @@ long int RRN_to_offset(int RRN){
     return RRN*tam_reg + tam_header;
 }
 
+// Função calcular o byte offset correspondente a determinado RRN
+long int arv_RRN_to_offset(int RRN){
+    return (RRN*tam_arv_no + tam_arv_head);
+}
+
 // Cria uma string que representa um par de estação
 void criar_par(Registro* reg, char* pair){
     // Verifica se a próxima estação é válida
@@ -122,4 +129,58 @@ int scan_int(){
     else 
         valor_inteiro = atoi(valor);
     return valor_inteiro;
+}
+
+/*
+Função padrão de busca binária
+
+Parâmetros:
+Vetor
+Tamanho
+Valor buscado
+
+Retorno:
+Índice do vetor que contém o valor buscado
+-1 caso não encontre nada
+*/
+int busca_binaria(int vetor[], int tamanho, int alvo) {
+    int inicio = 0;
+    int fim = tamanho - 1;
+    
+    while (inicio <= fim) {
+        int meio = inicio + (fim - inicio) / 2;
+        
+        // Verifica se o alvo está no meio
+        if (vetor[meio] == alvo)
+            return meio;
+        
+        // Se o alvo for maior, ignora a metade esquerda
+        if (vetor[meio] < alvo)
+            inicio = meio + 1;
+        
+        // Se o alvo for menor, ignora a metade direita
+        else
+            fim = meio - 1;
+    }
+    
+    // Alvo não encontrado
+    return -1;
+}
+
+/*
+Função para shiftar um vetor uma posição para tráz a partir do índice i
+
+Parâmetros:
+Vetor
+Posição a partir da qual o vetor será deslocado
+Tamanho total do vetor
+*/
+void shift_back(int vetor[], int pos, int tam){
+    // Percorre da posição atual até o final do vetor 
+    for(int i = pos; i < tam - 1; i++){
+        int aux = vetor[i+1];
+        vetor[i] = aux;
+    }
+    // Coloca o último elemento como o valor padrão
+    vetor[tam-1] = -1;   
 }

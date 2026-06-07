@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "arvoreB.h"
 #include "funcionalidades.h"
 
 /*
@@ -51,6 +52,14 @@ int main(){
         criar_arvore(arquivo_dados, arquivo_bin);
         break;
 
+    case 9: // Remoção de registro
+        int chave;
+        scanf("%s", arquivo_bin);
+        FILE* fp = fopen(arquivo_bin, "rb+");
+        scanf("%d", &chave);
+        remover_arv(fp, chave);
+        break;
+    
     default:
         break;
     }

@@ -38,14 +38,14 @@ function parseBTree(){
 		read(4);
 		addRow('topo', getSignedNumberValue(), 'topo da pilha de removidos');	
 		read(4);
-		addRow('proxRRN', getSignedNumberValue(), '');
+		let proxRRN = getSignedNumberValue();
+		addRow('proxRRN', proxRRN, '');
 		read(4);
-		let nroNos = getSignedNumberValue();
-		addRow('nroNos', nroNos, '');
+		addRow('nroNos', getSignedNumberValue(), '');
 
 		//Dados
 		let tamNomeEstacao, tamNomeLinha;
-		for (let i = 0; i < nroNos; i++) {
+		for (let i = 0; i < proxRRN; i++) {
 			read(53);
 			addRow(`RRN ${i}`, '');
 			addDetails(() => {
