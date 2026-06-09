@@ -1,4 +1,5 @@
 ./vscode
+./venv
 *.txt
 *.bin
 ./modelos
@@ -6,3 +7,5 @@ programaTrab
 fornecidas.c
 *.csv
 *.zip
+*.py
+*.png
