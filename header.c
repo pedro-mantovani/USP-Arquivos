@@ -3,6 +3,7 @@
 #include <string.h>
 #include "header.h"
 
+
 struct header{
     char status;
     int topo;

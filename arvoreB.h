@@ -35,9 +35,18 @@
     void arv_head_to_bin(FILE* fp, Arv_head* head);
     void arv_no_to_bin(FILE* fp, Arv_no* no, int RRN);
 
-    // Funções de get
+    // Funções de get e set
     int arv_head_get_nroNos(const Arv_head* h);
+    char arv_head_get_status(const Arv_head* h);
+    void arv_head_set_status(Arv_head* h, char status);
     
+    // Função de busca
+    int arv_busca_chave(FILE* fp_arvore, int chave_buscada);
+
+    // Função de inserção
+    int arv_inserir_chave(FILE* fp_arvore, int chave, int offset_dados);
+    int obter_rrn_livre_arvore(FILE* fp_arvore, Arv_head* head);
+
     // Funções de liberar memória
     void arv_no_free(Arv_no** no);
     void arv_head_free(Arv_head** head);
