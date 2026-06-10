@@ -58,6 +58,14 @@ int main(){
         busca_parametrizada_nova(arquivo_bin, arquivo_arv);
         break;
 
+    case 9: // Inserção de novos registros
+        char arquivo_arvore[100];
+        scanf("%s", arquivo_bin); 
+        scanf("%s", arquivo_arvore); 
+        //inserir(arquivo_bin);
+        inserir_nova(arquivo_bin, arquivo_arvore);
+        break;
+
     default:
         break;
     }

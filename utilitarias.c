@@ -40,24 +40,31 @@ void BinarioNaTela(char *arquivo) {
 void ScanQuoteString(char *str) {
     char R;
 
+    // Ignorar espaços em branco, \r, \n, etc.
     while ((R = getchar()) != EOF && isspace(R))
-        ; // ignorar espaços, \r, \n...
+        ; 
 
-    if (R == 'N' || R == 'n') { // campo NULO
-        getchar();
-        getchar();
-        getchar();       // ignorar o "ULO" de NULO.
-        strcpy(str, ""); // copia string vazia
-    } else if (R == '\"') {
-        if (scanf("%[^\"]", str) != 1) { // ler até o fechamento das aspas
+    // Se for uma string entre aspas
+    if (R == '\"') {
+        if (scanf("%[^\"]", str) != 1) { // Ler até o fechamento das aspas
             strcpy(str, "");
         }
-        getchar();         // ignorar aspas fechando
-    } else if (R != EOF) { 
-        //em vez de str[0] = R e scanf devolve o caractere para o buffer e le a palavra inteira
-        ungetc(R, stdin); 
-        scanf("%s", str);
-    } else { // EOF
+        getchar(); // Ignorar aspas fechando
+        
+    } 
+    
+    // Se for uma palavra normal sem aspas
+    else if (R != EOF) { 
+        ungetc(R, stdin); // Devolve a primeira letra pro buffer
+        scanf("%s", str); // Lê a palavra inteira
+        
+        // Verifica se a palavra inteira era "NULO"
+        if (strcmp(str, "NULO") == 0 || strcmp(str, "nulo") == 0) {
+            strcpy(str, ""); // Limpa a string
+        }  
+    } 
+    // Se chegou no fim do arquivo
+    else { 
         strcpy(str, "");
     }
 }
