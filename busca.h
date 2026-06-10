@@ -6,6 +6,7 @@
 
     typedef struct {
         int n;               // Número de campos 
+        bool chave_primaria;
         char** campos;       // Nomes dos campos
         char** valores;      // Valores dos campos
     } Campos;

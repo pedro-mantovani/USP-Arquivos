@@ -21,6 +21,7 @@ Campos* criar_campos(int n) {
     if (!c) return NULL;
 
     c->n = n;
+    c->chave_primaria = false;
     c->campos = (char**) malloc(n * sizeof(char*));
     c->valores = (char**) malloc(n * sizeof(char*));
     
@@ -52,6 +53,8 @@ void preencher_campos(Campos *b) {
     for (int i = 0; i < b->n; i++) {
         scanf("%s", b->campos[i]);
         ScanQuoteString(b->valores[i]);
+        if(strcmp(b->campos[i], "CodEstacao"))
+            b->chave_primaria = true;
     }
 }
 

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "AVL.h"
+#include "arvoreB.h"
 #include "registro.h"
 #include "header.h"
 #include "busca.h"
@@ -16,17 +17,26 @@ Durante a última varredura, ela também contabiliza os nomes de estações e os
 que permanecem no arquivo, para então atualizar o cabeçalho e salvar o arquivo como consistente. 
 */
 
-void remover(char* nome_arquivo) {
+void remover(char* nome_arquivo, char* nome_arquivo_arv) {
 
     // Abre um arquivo existente para leitura e escrita
     FILE* fp = fopen(nome_arquivo, "rb+");
     if (!verificarStatusArquivo(fp)) return;
+
+    // Faz o mesmo para a árvore B
+    FILE* fp_arvore = fopen(nome_arquivo_arv, "rb+");
+    if (!verificarStatusArquivo(fp_arvore)) return;
 
     // Marca o header como inconsistente e coloca a struct na memória
     char inconsistente = '0';
     fseek(fp, 0, SEEK_SET); // Volta o ponteiro para o início
     fwrite(&inconsistente, sizeof(char), 1, fp); // Coloca '0' no primeiro byte
     Header* h = bin_to_header(fp); 
+
+    // Faz o mesmo com a árvore B
+    fseek(fp_arvore, 0, SEEK_SET); // Volta o ponteiro para o início
+    fwrite(&inconsistente, sizeof(char), 1, fp); // Coloca '0' no primeiro byte
+    Arv_head* arv_head = bin_to_arv_head(fp_arvore); 
 
     // Lê o número de remoções
     int n_remocoes;
@@ -37,6 +47,7 @@ void remover(char* nome_arquivo) {
     }
 
     // Cria as AVLs que irão armazenar os nomes das estações e os pares
+    bool flag_avl = false; // Flag para indicar se a AVL já foi povoada
     AVL* nomes_estacoes = AVL_criar();
     AVL* pares_estacoes = AVL_criar();
 

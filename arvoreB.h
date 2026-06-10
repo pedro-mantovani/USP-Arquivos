@@ -29,7 +29,7 @@
     Arv_no* bin_to_arv_no(FILE* fp, int RRN);
 
     // Funções de manipulação da árvore
-    void remover_arv(FILE* fp_arvore, int chave);
+    void remover_arv(FILE* fp_arvore, Arv_head* head, int chave);
 
     // Funções para colocar structs em um arquivo de árvore binária
     void arv_head_to_bin(FILE* fp, Arv_head* head);

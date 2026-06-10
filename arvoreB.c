@@ -765,7 +765,7 @@ Parâmetros:
 Arquivo
 Chave a ser removida
 */
-void remover_arv(FILE* fp_arvore, int chave){
+void remover_arv(FILE* fp_arvore, Arv_head* header, int chave){
     if (fp_arvore == NULL) return;
 
     // Lê o cabeçalho
