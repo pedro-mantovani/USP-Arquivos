@@ -112,7 +112,7 @@ void inserir(char* nome_arquivo){
 }
 
 
-// Função para atualizar as contagens do cabeçalho varrendo o arquivo inteiro
+// Função para atualizar as contagens de nomes e pares do cabeçalho varrendo o arquivo inteiro
 void atualizar_metricas_cabecalho(FILE* fp_dados, Header* h) {
     // Cria duas árvores AVL
     AVL* avl_nomes = AVL_criar();
@@ -122,6 +122,7 @@ void atualizar_metricas_cabecalho(FILE* fp_dados, Header* h) {
     fseek(fp_dados, tam_header, SEEK_SET); 
     int proxRRN = header_get_proxRRN(h);
 
+    // Varre o arquivo
     for (int rrn = 0; rrn < proxRRN; rrn++) {
         
         Registro* reg = bin_to_reg(fp_dados);
@@ -133,11 +134,10 @@ void atualizar_metricas_cabecalho(FILE* fp_dados, Header* h) {
             // Insere nos nomes
             AVL_inserir(avl_nomes, reg_get_nomeEstacao(reg)); // Insere o nome da estação na AVL
 
-            // Transformma o par da estação em uma string do tipo "a,b" com a < b
+            // Transforma o par da estação em uma string do tipo "a,b" com a < b
             char pair[20];
-            criar_par(reg, pair); // Cria a string do par
-            if(pair[0] != '\0') // Caso ela seja válida insere na AVL
-            AVL_inserir(avl_pares, pair);
+            criar_par(reg, pair);                                   // Cria a string do par
+            if(pair[0] != '\0') AVL_inserir(avl_pares, pair);       // Caso ela seja válida insere na AVL
         }
 
         reg_free(&reg);

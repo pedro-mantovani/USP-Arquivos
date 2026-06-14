@@ -1,3 +1,14 @@
+/*
+O arquivo arvoreB.h contém todas as funções públicas de manipulação na árvore B. 
+Para facilitar a correção, a implementação foi separada em 4 arquivos:
+
+- arvoreB.c: Funções de criação da árvore B e transição do arquivo binário para ram e vice versa
+- bucarB.c:  Funções necessárias para a busca
+- inserirB.c: Funções necessárias para a inserção
+- removerB.c: Funções necessárias para a remoção
+
+*/
+
 #ifndef ARVOREB_H
     #define ARVOREB_H
 
@@ -15,6 +26,29 @@
     #define nro_chaves (ordem-1)
     #define tam_arv_no (17+12*nro_chaves)
     #define min_chaves ((int)ceil(ordem/2.0) - 1)
+
+    /*
+    Sctructs para o cabeçalho e para os nós da árvore
+    */
+
+    struct arv_head{
+        char status;
+        int noRaiz;
+        int topo;
+        int proxRRN;
+        int nroNos;
+    };
+
+    struct arv_no{
+        char removido;
+        int proximo;
+        int tipoNo;
+        int nroChaves;
+        
+        int* chaves;
+        int* offsets;
+        int* filhos;
+    };
 
     // Define as estruturas
     typedef struct arv_no Arv_no;
