@@ -86,6 +86,12 @@ long int RRN_to_offset(int RRN){
     return RRN*tam_reg + tam_header;
 }
 
+// Função calcular o RRN correspondente a determinado offset
+int offset_to_RRN(int offset){
+    return (offset-tam_header)/tam_reg;
+}
+
+
 // Função calcular o byte offset correspondente a determinado RRN
 long int arv_RRN_to_offset(int RRN){
     return (RRN*tam_arv_no + tam_arv_head);

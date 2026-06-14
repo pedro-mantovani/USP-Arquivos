@@ -1,6 +1,5 @@
 all:
-	make compile_val
-	make run_val
+	make compile
 
 run:
 	./programaTrab

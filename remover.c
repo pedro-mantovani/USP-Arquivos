@@ -8,6 +8,21 @@
 #include "funcionalidades.h"
 #include "utilitarias.h"
 
+/*
+Função auxiliar para remover um registro do arquivo de dados
+*/
+void remover_dados(FILE* fp, Header* h, int RRN_atual, int offset){
+    // Verifica o topo atual da pilha
+    int topo = header_get_topo(h);
+    
+    char removido = '1';
+    fseek(fp, offset, SEEK_SET); // Vai para o primeiro byte offset do registro (que é o removido)
+    fwrite(&removido, sizeof(char), 1, fp); // Marca como removido
+    fwrite(&topo, sizeof(int), 1, fp); // Coloca nos próximos 4 bytes o topo da pilha
+
+    header_set_topo(h, RRN_atual); // O novo topo da pilha vira este RRN
+}
+
 /* 
 A função remover lê os critérios de busca, 
 percorre o arquivo binário e marca como removidos os registros que atendem aos filtros, 
@@ -17,7 +32,7 @@ Durante a última varredura, ela também contabiliza os nomes de estações e os
 que permanecem no arquivo, para então atualizar o cabeçalho e salvar o arquivo como consistente. 
 */
 
-void remover(char* nome_arquivo, char* nome_arquivo_arv) {
+void remover_novo(char* nome_arquivo, char* nome_arquivo_arv) {
 
     // Abre um arquivo existente para leitura e escrita
     FILE* fp = fopen(nome_arquivo, "rb+");
@@ -35,7 +50,7 @@ void remover(char* nome_arquivo, char* nome_arquivo_arv) {
 
     // Faz o mesmo com a árvore B
     fseek(fp_arvore, 0, SEEK_SET); // Volta o ponteiro para o início
-    fwrite(&inconsistente, sizeof(char), 1, fp); // Coloca '0' no primeiro byte
+    fwrite(&inconsistente, sizeof(char), 1, fp_arvore); // Coloca '0' no primeiro byte
     Arv_head* arv_head = bin_to_arv_head(fp_arvore); 
 
     // Lê o número de remoções
@@ -47,7 +62,171 @@ void remover(char* nome_arquivo, char* nome_arquivo_arv) {
     }
 
     // Cria as AVLs que irão armazenar os nomes das estações e os pares
-    bool flag_avl = false; // Flag para indicar se a AVL já foi povoada
+    bool avl_povoada = false; // Flag para indicar se a AVL já foi povoada
+    AVL* nomes_estacoes = AVL_criar();
+    AVL* pares_estacoes = AVL_criar();
+
+    // Faz n remoções
+    while (n_remocoes--) {
+        // Lê o número de filtros
+        int m_filtros; 
+        scanf("%d", &m_filtros);
+
+        // Cria uma estrutura para armazenar os filtros da busca
+        Campos* c_busca = criar_campos(m_filtros);
+        int chave_primaria = preencher_campos(c_busca);
+
+        /*
+        Se não tiver o campo de chave primária ele faz a busca normal
+        Se ainda não estiver povoada as AVLs ele povoa
+        Se já estiver ele apenas remove em ambos
+        */
+        if(chave_primaria == -1){
+            fseek(fp, tam_header, SEEK_SET); // Vai até o início dos registros
+            
+            // Declara as variáveis que serão usadas no loop
+            Registro* reg;
+            long int offset;
+            int proxRRN =  header_get_proxRRN(h);
+
+            // Itera pelo arquivo verificando se o registro atende às condições de busca
+            for(int RRN_atual = 0; RRN_atual < proxRRN; RRN_atual++) {
+
+                // Lê o registro do binário
+                reg = bin_to_reg(fp);
+
+                // Ignora registros removidos
+                if(reg == NULL) continue;
+
+                // Verifica se o registro atende aos critérios da struct Busca
+                if (registro_passa_filtro(reg, c_busca)) {
+                    // Se as AVLs já estiverem povoadas remove o registro delas
+                    AVL_remover(nomes_estacoes, reg_get_nomeEstacao(reg)); // Remove o nome da estação na AVL
+
+                    // Transformma o par da estação em uma string do tipo "a,b" com a < b
+                    char pair[20];
+                    criar_par(reg, pair); // Cria a string do par
+                    if(pair[0] != '\0') // Caso ela seja válida remove da AVL
+                        AVL_remover(pares_estacoes, pair);
+
+                    // Remove da árvore B
+                    offset = remover_arv(fp_arvore, arv_head, reg_get_codEstacao(reg));
+
+                    // Remove dos registros
+                    remover_dados(fp, h, RRN_atual, offset);
+
+                    // Retorna o ponteiro para o próximo registro
+                    fseek(fp, offset + 80, SEEK_SET); 
+
+                }else{
+                    // Se é a AVL ainda não foi povoada conta o número de pares das estações e de nomes únicos
+                    if(!avl_povoada){
+
+                        // Como o registro é válido e não foi removido ele estará no registro final e precisa ser contabilizado
+                        AVL_inserir(nomes_estacoes, reg_get_nomeEstacao(reg)); // Insere o nome da estação na AVL
+
+                        // Transformma o par da estação em uma string do tipo "a,b" com a < b
+                        char pair[20];
+                        criar_par(reg, pair); // Cria a string do par
+                        if(pair[0] != '\0') // Caso ela seja válida insere na AVL
+                        AVL_inserir(pares_estacoes, pair);
+                    
+                    }
+                }
+
+                // Libera a memória do registro temporário
+                reg_free(&reg);
+            }
+            // Agora a avl está povoada
+            avl_povoada = true;
+        }else{
+            /*
+            Se a busca envolver uma chave primária
+            Procura primeiro por esse campo e depois verificica se o registro satisfaz aos outros critérios
+            Só mexe com as AVL se elas já estiverem povoadas
+            */
+            int offset = remover_arv(fp_arvore, arv_head, chave_primaria);
+            
+            if(offset != -1){
+                // Se as AVLs já estiverem povoadas remove o registro delas
+                if(avl_povoada){
+                    // Lê o registro
+                    fseek(fp, offset, SEEK_SET);
+                    Registro* reg = bin_to_reg(fp);
+                    AVL_remover(nomes_estacoes, reg_get_nomeEstacao(reg)); // Remove o nome da estação na AVL
+
+                    // Transformma o par da estação em uma string do tipo "a,b" com a < b
+                    char pair[20];
+                    criar_par(reg, pair); // Cria a string do par
+                    if(pair[0] != '\0') // Caso ela seja válida remove da AVL
+                        AVL_remover(pares_estacoes, pair);
+                    
+                    reg_free(&reg);
+                }
+
+                // Remove do arquivo de registros
+                int RRN = offset_to_RRN(offset);
+                remover_dados(fp, h, RRN, offset);
+
+            }
+        }
+
+        // Libera memória da busca atual
+        apagar_campos(&c_busca);
+    }
+    // Se alguma das buscas foi sequencial e a AVL está povoada 
+    if(avl_povoada){ 
+        header_set_nroEstacoes(h, AVL_tamanho(nomes_estacoes));
+        header_set_nroParesEstacao(h, AVL_tamanho(pares_estacoes));
+    }else{ // Caso contrário percorre o arquivo todo para povoar as AVLs
+        atualizar_metricas_cabecalho(fp, h);
+    }
+    // Salva o Header atualizado (topo, nroEstacoes, nroPares) e consistente
+    header_set_status(h, '1'); 
+    header_to_bin(fp, h); 
+
+    // Salva o cabeçalho da árvore B
+    arv_head_set_status(arv_head, '1');
+    arv_head_to_bin(fp_arvore, arv_head);
+
+    // Fecha os arquivos
+    fclose(fp);
+    fclose(fp_arvore);
+
+    // Libera as memórias
+    header_free(&h);
+    arv_head_free(&arv_head);
+    AVL_apagar(&nomes_estacoes);
+    AVL_apagar(&pares_estacoes);
+    BinarioNaTela(nome_arquivo); 
+    BinarioNaTela(nome_arquivo_arv); 
+}
+
+/*
+Função de remoção antiga (só para a funcionalidade 4 não parar de funcionar)
+*/
+
+void remover(char* nome_arquivo) {
+
+    // Abre um arquivo existente para leitura e escrita
+    FILE* fp = fopen(nome_arquivo, "rb+");
+    if (!verificarStatusArquivo(fp)) return;
+
+    // Marca o header como inconsistente e coloca a struct na memória
+    char inconsistente = '0';
+    fseek(fp, 0, SEEK_SET); // Volta o ponteiro para o início
+    fwrite(&inconsistente, sizeof(char), 1, fp); // Coloca '0' no primeiro byte
+    Header* h = bin_to_header(fp); 
+
+    // Lê o número de remoções
+    int n_remocoes;
+    if (scanf("%d", &n_remocoes) != 1) {
+        fclose(fp); 
+        header_free(&h); 
+        return;
+    }
+
+    // Cria as AVLs que irão armazenar os nomes das estações e os pares
     AVL* nomes_estacoes = AVL_criar();
     AVL* pares_estacoes = AVL_criar();
 

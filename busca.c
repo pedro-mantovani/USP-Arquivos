@@ -58,9 +58,6 @@ int preencher_campos(Campos *b) {
     for (int i = 0; i < b->n; i++) {
         scanf("%s", b->campos[i]);
         ScanQuoteString(b->valores[i]);
-        if(strcmp(b->campos[i], "CodEstacao"))
-            b->chave_primaria = true;
-
         if (strcmp(b->campos[i], "codEstacao") == 0) {
             temcod = atoi(b->valores[i]);
         }

@@ -119,7 +119,7 @@ void atualizar_metricas_cabecalho(FILE* fp_dados, Header* h) {
     AVL* avl_pares = AVL_criar(); 
 
     // Posiciona o ponteiro logo após o cabeçalho
-    fseek(fp_dados, 17, SEEK_SET); 
+    fseek(fp_dados, tam_header, SEEK_SET); 
     int proxRRN = header_get_proxRRN(h);
 
     for (int rrn = 0; rrn < proxRRN; rrn++) {
@@ -130,25 +130,14 @@ void atualizar_metricas_cabecalho(FILE* fp_dados, Header* h) {
         
         // Só contabiliza registros que não estão logicamente removidos
         if (reg_get_removido(reg) != '1') { 
-            
-            // Contabiliza Estações Únicas
-            char* nome = reg_get_nomeEstacao(reg);
-            if (nome != NULL && strlen(nome) > 0) {
-                // CORREÇÃO: Aloca uma memória nova só para a AVL guardar o nome
-                char* copia_nome = malloc(strlen(nome) + 1);
-                strcpy(copia_nome, nome);
-                AVL_inserir(avl_nomes, copia_nome);
-            }
+            // Insere nos nomes
+            AVL_inserir(avl_nomes, reg_get_nomeEstacao(reg)); // Insere o nome da estação na AVL
 
-            // Contabiliza Pares Únicos
-            int codEst = reg_get_codEstacao(reg);
-            int codProx = reg_get_codProxEstacao(reg);
-            
-            if (codProx != -1) {
-                char* copia_par = malloc(20 * sizeof(char));
-                sprintf(copia_par, "%d-%d", codEst, codProx);
-                AVL_inserir(avl_pares, copia_par);
-            }
+            // Transformma o par da estação em uma string do tipo "a,b" com a < b
+            char pair[20];
+            criar_par(reg, pair); // Cria a string do par
+            if(pair[0] != '\0') // Caso ela seja válida insere na AVL
+            AVL_inserir(avl_pares, pair);
         }
 
         reg_free(&reg);

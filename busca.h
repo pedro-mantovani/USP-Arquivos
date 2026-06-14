@@ -6,7 +6,7 @@
 
     typedef struct {
         int n;               // Número de campos 
-        bool chave_primaria;
+        bool chave_primaria; // Booleno indicando se um dos campos de busca é a chave primária
         char** campos;       // Nomes dos campos
         char** valores;      // Valores dos campos
     } Campos;
