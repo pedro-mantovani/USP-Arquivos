@@ -4,40 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-
-// /*
-// Sctructs para o cabeçalho e para os nós da árvore
-// */
-
-// struct arv_head{
-//     char status;
-//     int noRaiz;
-//     int topo;
-//     int proxRRN;
-//     int nroNos;
-// };
-
-// struct arv_no{
-//     char removido;
-//     int proximo;
-//     int tipoNo;
-//     int nroChaves;
-//     int* chaves;
-//     int* offsets;
-//     int* filhos;
-// };
-
-// // Ver se tem um nome melhor
-// typedef struct chave_{
-//     int chave;
-//     int offset;
-//     int filho;
-// } Chave;
-
-/*
-Funções para criar e inicializar as structs
-*/
 
 Arv_head* criar_arv_head(){
     // Aloca memória para o cabeçalho

@@ -17,7 +17,6 @@
     int verificarStatusArquivo(FILE* fp);
     int scan_int();
     int busca_binaria(int vetor[], int tamanho, int alvo);
-    void shift_back(int vetor[], int pos, int tam);
     void atualizar_metricas_cabecalho(FILE* fp_dados, Header* h);
 
 #endif

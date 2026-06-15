@@ -179,21 +179,3 @@ int busca_binaria(int vetor[], int tamanho, int alvo) {
     // Alvo não encontrado
     return -1;
 }
-
-/*
-Função para shiftar um vetor uma posição para tráz a partir do índice i
-
-Parâmetros:
-Vetor
-Posição a partir da qual o vetor será deslocado
-Tamanho total do vetor
-*/
-void shift_back(int vetor[], int pos, int tam){
-    // Percorre da posição atual até o final do vetor 
-    for(int i = pos; i < tam - 1; i++){
-        int aux = vetor[i+1];
-        vetor[i] = aux;
-    }
-    // Coloca o último elemento como o valor padrão
-    vetor[tam-1] = -1;   
-}

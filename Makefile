@@ -1,5 +1,6 @@
 all:
-	make compile
+	make compile_val
+	python3 tester.py
 
 run:
 	./programaTrab

@@ -6,22 +6,12 @@
 #include <string.h>
 #include <math.h>
 
-/*
-Struct usadas na remoção
-*/
-
-// DESCREVE ISSO NE AMIGO
+// Scruct de retorno da remoção
 typedef struct{
-    bool underflow;
-    int offset;
-    Arv_no* buffer;
+    bool underflow; // Booleano indicando se ocorreu um underflow
+    int offset; // Byte offset da chave removida no arquivo de registros
+    Arv_no* buffer; // Nó instável que será mantido na RAM pois sofrerá modificações
 } resultadoRemocao;
-
-typedef struct chave_{
-    int chave;
-    int offset;
-    int filho;
-} Chave;
 
 /*
 Funções usadas na remoção
@@ -32,79 +22,15 @@ Função de remoção simples, ou seja, simplesmente shifta os elementos
 */
 void remocao_simples(FILE*fp_arvore, Arv_no* no, int i, int rrn_atual, bool eh_folha){
     // Shifta as chaves, offsets e filhos(se não for raíz)
-    shift_back(no->chaves, i, no->nroChaves);
-    shift_back(no->offsets, i, no->nroChaves);
+    shift(no->chaves, i, no->nroChaves, true);
+    shift(no->offsets, i, no->nroChaves, true);
     if(!eh_folha){
-        shift_back(no->filhos, i+1, no->nroChaves + 1);
+        shift(no->filhos, i+1, no->nroChaves + 1, true);
     }
     
     // Decrementa o número de chaves do nó
     no->nroChaves --;
-    arv_no_to_bin(fp_arvore, no, rrn_atual); // Escreve em disco, só pra bater com o gabarito :P
-}
-
-/*
-Função para transformar uma chave pai + seus filhos em um vetor
-Usado na:
-Redistribuição
-Concatenação
-Inserção
-
-Retorna o vetor final e altera o conteúdo da variável tamanho para o tamanho do vetor
-
-Parâmetros:
-Nó pai
-Índice da chave pai no vetor pai
-Nó esquerdo
-Nó direito
-*/
-Chave* vectorize(Arv_no* pai, int i_pai, Arv_no* f_esq, Arv_no* f_dir, int* tam, bool eh_folha){
-    int n_esq, n_dir, total;
-    n_esq = f_esq->nroChaves;
-    n_dir = f_dir->nroChaves;
-    total = n_dir + n_esq + 1;
-
-    // Cria um vetor auxiliar para armazenar as chaves
-    Chave* vec;
-    if(eh_folha){
-        vec = (Chave*)malloc(sizeof(Chave)* total);
-    }else{
-        // Se não for raíz tem que armazenar um espaço a mais para salvar os filhos
-        vec = (Chave*)malloc(sizeof(Chave)* (1+total));
-    }
-    
-    /*Preenche o vetor auxiliar*/
-    // Coloca os elementos do nó esquerdo
-    for(int i = 0; i < n_esq; i++){
-        vec[i].chave = f_esq->chaves[i];
-        vec[i].offset = f_esq->offsets[i];
-        if(!eh_folha){ // Se não é raíz salva os filhos
-            vec[i].filho = f_esq->filhos[i];
-        }
-    }
-    if(!eh_folha){ // Se não é raíz salva o filho mais a direita do nó à esquerda
-        vec[n_esq].filho = f_esq->filhos[n_esq];
-    }
-
-    // Coloca o elemento do nó pai
-    vec[n_esq].chave = pai->chaves[i_pai];
-    vec[n_esq].offset = pai->offsets[i_pai];
-    
-    // Coloca os elementos do nó direito
-    for(int i = n_esq+1; i < total; i++){
-        vec[i].chave = f_dir->chaves[i - n_esq -1];
-        vec[i].offset = f_dir->offsets[i - n_esq -1];
-        if(!eh_folha){ // Se não é raíz salva os filhos
-            vec[i].filho = f_dir->filhos[i - n_esq - 1];
-        }
-    }
-    if(!eh_folha){ // Se não é raíz salva o filho mais a direita do nó à direita
-        vec[total].filho = f_dir->filhos[n_dir];
-    }
-
-    *tam = total;
-
-    return vec;
+    arv_no_to_bin(fp_arvore, no, rrn_atual); // Escreve em disco só pra bater com o gabarito :P
 }
 
 /*
@@ -344,7 +270,6 @@ Chave remover_sucessor(FILE* fp_arvore, Arv_head* head, resultadoRemocao* res, i
 
         // Remove do nó a chave sucessora
         remocao_simples(fp_arvore, no, 0, RRN, true);
-        arv_no_to_bin(fp_arvore, no, RRN); // Escrita em disco só pra passar no runcodes :P
 
         // Verifica underflow
         res->underflow = no->nroChaves < min_chaves;

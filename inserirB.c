@@ -2,31 +2,67 @@
 #include "utilitarias.h"
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <math.h>
+
+/*
+Função para definir onde um novo nó será inserido
+
+Verifica a pilha de removidos e já faz as atualizações necessárias no cabeçalho
+
+Retorno:
+RRN em que o novo nó deve ser inserido
+*/
+int rrn_insercao(FILE* fp_arvore, Arv_head* head) {
+    int rrn_livre;
+
+    if (head->topo == -1) { // Se não existe espaço a se reaproveitar
+        rrn_livre = head->proxRRN++; // Insere no fim do arquivo
+    } else {
+        rrn_livre = head->topo; // Verifica o topo da pilha
+
+        // Lê o novo topo da pilha
+        fseek(fp_arvore, arv_RRN_to_offset(rrn_livre) + 1, SEEK_SET);
+        int prox_topo;
+        fread(&prox_topo, sizeof(int), 1, fp_arvore);
+        head->topo = prox_topo; // Atualiza o topo com o próximo da pilha
+    }
+    head->nroNos++; // aumenta o número de nós
+    return rrn_livre;
+}
 
 /* 
-Função para realizar a inserção da chave caso o nó encontrado
-para ela esteja com espaço disponível
+Função para realizar a inserção da chave 
+caso o nó encontrado esteja com espaço disponível
 */
-void inserir_tem_espaco(Arv_no* no, int i, int p_chave, int p_offset, int p_filho_dir) {
+void insercao_simples(Arv_no* no, int i, int p_chave, int p_offset, int p_filho_dir) {
 
     // Deslocamento para a direita para abrir espaço ordenado
-    for (int j = no->nroChaves; j > i; j--) {
-        no->chaves[j] = no->chaves[j-1];
-        no->offsets[j] = no->offsets[j-1];
-        no->filhos[j+1] = no->filhos[j];
+    shift(no->chaves, i, no->nroChaves, false);
+    shift(no->offsets, i, no->nroChaves, false);
+    if(no->tipoNo != -1){
+        shift(no->filhos, i, no->nroChaves + 1, false);
+        no->filhos[i+1] = p_filho_dir;
     }
-    
+
     // Insere a chave promovida no espaço aberto
     no->chaves[i] = p_chave;
     no->offsets[i] = p_offset;
-    no->filhos[i+1] = p_filho_dir;
     no->nroChaves++;
 }
 
 /*
+Struct de retorno da inserção
+*/
+typedef struct{
+    bool promocao; // Booleano indicando se ocorreu uma promocao
+    Chave* promovida; // Chave promovida
+} resultadoInsercao;
+
+
+/*
+Recebe o nó cheio e a chave que quer ser inserida
+Realiza o split, 
+
 Realiza o particionamento (split), caso o nó encontrado para a
 chave não tenha espaço disponível
 
@@ -66,26 +102,16 @@ void split(FILE* fp, Arv_head* head, Arv_no* no, int rrn_atual, int i,
         temp_filhos[j + 1] = no->filhos[j];
     }
 
-    // Particionamento: criação do nó à direita
+    // Particionamento: criação do nó à direita (já inicializado)
     Arv_no* novo_no = criar_arv_no();
     
-    // Limpa o nó novo para evitar lixo no disco
-    novo_no->nroChaves = 0;
-    for (int j = 0; j < nro_chaves; j++) {
-        novo_no->chaves[j] = -1;
-        novo_no->offsets[j] = -1;
-    }
-    for (int j = 0; j <= nro_chaves; j++) {
-        novo_no->filhos[j] = -1;
-    }
-
     // Ajuste de tipo do nó (Folha vs Intermediário)
     if (no->tipoNo == 0) {
         no->tipoNo = (no->filhos[0] == -1) ? -1 : 1;
     }
     novo_no->tipoNo = no->tipoNo; 
     
-    int novo_rrn = obter_rrn_livre_arvore(fp, head);
+    int novo_rrn = rrn_insercao(fp, head);
 
     // Nó da esquerda fica com as 2 primeiras chaves
     no->nroChaves = 2;
@@ -133,6 +159,7 @@ Retorna 0 se a inserção foi resolvida de forma segura no nível atual ou infer
 int arv_inserir_recursivo(FILE* fp, Arv_head* head, int rrn_atual, int chave_inserir, int offset_inserir, 
                             int* chave_promovida, int* offset_promovido, int* filho_dir_promovido, int* inserido) {
 
+    // POO: Chamada de recursão a toa, o correto seria verificar se o nó atual é folha
     // Condição de base: chegou abaixo de um nó folha
     if (rrn_atual == -1) {              // A chave deve ser "promovida" para o nó folha que chamou esta recursão
         *chave_promovida = chave_inserir;
@@ -154,7 +181,6 @@ int arv_inserir_recursivo(FILE* fp, Arv_head* head, int rrn_atual, int chave_ins
 
     // Prevenção de chaves duplicadas
     if (i < no->nroChaves && chave_inserir == no->chaves[i]) {
-        //printf("o codEstacao: %d já existe em %d\n", chave_inserir, no->offsets[i]);
         arv_no_free(&no);
         *inserido = 0;
         return 0;                   // A chave já existe, encerra a inserção
@@ -178,7 +204,7 @@ int arv_inserir_recursivo(FILE* fp, Arv_head* head, int rrn_atual, int chave_ins
 
     // O nó atual tem espaço (nroChaves < 3)
     if (no->nroChaves < nro_chaves) {
-        inserir_tem_espaco(no, i, p_chave, p_offset, p_filho_dir);
+        insercao_simples(no, i, p_chave, p_offset, p_filho_dir);
         arv_no_to_bin(fp, no, rrn_atual);
         arv_no_free(&no);
         return 0;
@@ -198,12 +224,8 @@ Função pública para inserir na Árvore-B
 faz a leitura do cabeçalho e o crescimento da árvore
 cria uma nova raiz caso a raiz atual sofra overflow
 */
-
-// POO: Atualizar o header apenas em RAM
-int arv_inserir_chave(FILE* fp_arvore, int chave, int offset_dados) {
+bool arv_inserir_chave(FILE* fp_arvore, Arv_head* head, int chave, int offset_dados) {
     if (fp_arvore == NULL) return 0;
-
-    Arv_head* head = bin_to_arv_head(fp_arvore);
     if (head == NULL) return 0;
 
     // Caso a Árvore esteja completamente vazia
@@ -219,10 +241,8 @@ int arv_inserir_chave(FILE* fp_arvore, int chave, int offset_dados) {
         head->nroNos++;
         
         arv_no_to_bin(fp_arvore, raiz, rrn);
-        arv_head_to_bin(fp_arvore, head);
 
         arv_no_free(&raiz);
-        arv_head_free(&head);
         return 1; //inserido com sucesso
     }
 
@@ -233,7 +253,6 @@ int arv_inserir_chave(FILE* fp_arvore, int chave, int offset_dados) {
 
     // Se a recursão disse que a chave é duplicada, encerra e retorna falso
     if (inserido == 0) {
-        arv_head_free(&head);
         return 0; 
     }
 
@@ -252,33 +271,12 @@ int arv_inserir_chave(FILE* fp_arvore, int chave, int offset_dados) {
         nova_raiz->filhos[0] = head->noRaiz;     // O filho esquerdo é a antiga raiz
         nova_raiz->filhos[1] = p_filho_dir;      // O filho direito é o nó gerado pela quebra
 
-        int novo_rrn_raiz = obter_rrn_livre_arvore(fp_arvore, head);
+        int novo_rrn_raiz = rrn_insercao(fp_arvore, head);
         head->noRaiz = novo_rrn_raiz;
 
         arv_no_to_bin(fp_arvore, nova_raiz, novo_rrn_raiz);
         arv_no_free(&nova_raiz);
     }
 
-    // Atualiza contadores e ponteiros no cabeçalho
-    arv_head_to_bin(fp_arvore, head);
-    arv_head_free(&head);
-
     return 1; //inserido com sucesso
-}
-
-//ISSO NAO FAZ SENTIDO MAS NAO VOU MEXER PQ TA FUNCIONANDO
-int obter_rrn_livre_arvore(FILE* fp_arvore, Arv_head* head) {
-    int rrn_livre;
-    if (head->topo == -1) {
-        rrn_livre = head->proxRRN++;
-    } else {
-        rrn_livre = head->topo;
-
-        fseek(fp_arvore, 17 + (rrn_livre * 53) + 1, SEEK_SET);
-        int prox_topo;
-        fread(&prox_topo, sizeof(int), 1, fp_arvore);
-        head->topo = prox_topo; // Atualiza o topo com o próximo da pilha
-    }
-    head->nroNos++;
-    return rrn_livre;
 }

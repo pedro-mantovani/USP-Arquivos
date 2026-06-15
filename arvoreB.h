@@ -28,7 +28,7 @@ Para facilitar a correção, a implementação foi separada em 4 arquivos:
     #define min_chaves ((int)ceil(ordem/2.0) - 1)
 
     /*
-    Sctructs para o cabeçalho e para os nós da árvore
+    Sctructs para o cabeçalho, nós da árvore e conjunto que acompanha uma chave da árvore
     */
 
     struct arv_head{
@@ -49,6 +49,13 @@ Para facilitar a correção, a implementação foi separada em 4 arquivos:
         int* offsets;
         int* filhos;
     };
+
+    typedef struct chave_{
+        int chave;
+        int offset;
+        int filho;
+    } Chave;
+
 
     // Define as estruturas
     typedef struct arv_no Arv_no;
@@ -75,13 +82,17 @@ Para facilitar a correção, a implementação foi separada em 4 arquivos:
     void arv_head_set_status(Arv_head* h, char status);
     
     // Função de busca
-    int arv_busca_chave(FILE* fp_arvore, int chave_buscada);
+    int arv_busca_chave(FILE* fp_arvore, int rrn_raiz, int chave_buscada);
 
     // Função de inserção
-    int arv_inserir_chave(FILE* fp_arvore, int chave, int offset_dados);
-    int obter_rrn_livre_arvore(FILE* fp_arvore, Arv_head* head);
-
+    bool arv_inserir_chave(FILE* fp_arvore, Arv_head* head, int chave, int offset_dados);
+    
     // Funções de liberar memória
     void arv_no_free(Arv_no** no);
     void arv_head_free(Arv_head** head);
+
+    // Funções utilitárias
+    void shift(int vetor[], int pos, int tam, bool back); 
+    Chave* vectorize(Arv_no* pai, int i_pai, Arv_no* f_esq, Arv_no* f_dir, int* tam, bool eh_folha);
+
 #endif
