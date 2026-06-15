@@ -53,7 +53,7 @@ Para facilitar a correção, a implementação foi separada em 4 arquivos:
     typedef struct chave_{
         int chave;
         int offset;
-        int filho;
+        int filho_dir;
     } Chave;
 
 

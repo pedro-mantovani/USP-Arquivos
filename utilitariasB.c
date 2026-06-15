@@ -65,11 +65,11 @@ Chave* vectorize(Arv_no* pai, int i_pai, Arv_no* f_esq, Arv_no* f_dir, int* tam,
         vec[i].chave = f_esq->chaves[i];
         vec[i].offset = f_esq->offsets[i];
         if(!eh_folha){ // Se não é raíz salva os filhos
-            vec[i].filho = f_esq->filhos[i];
+            vec[i].filho_dir = f_esq->filhos[i];
         }
     }
     if(!eh_folha){ // Se não é raíz salva o filho mais a direita do nó à esquerda
-        vec[n_esq].filho = f_esq->filhos[n_esq];
+        vec[n_esq].filho_dir = f_esq->filhos[n_esq];
     }
 
     // Coloca o elemento do nó pai
@@ -81,11 +81,11 @@ Chave* vectorize(Arv_no* pai, int i_pai, Arv_no* f_esq, Arv_no* f_dir, int* tam,
         vec[i].chave = f_dir->chaves[i - n_esq -1];
         vec[i].offset = f_dir->offsets[i - n_esq -1];
         if(!eh_folha){ // Se não é raíz salva os filhos
-            vec[i].filho = f_dir->filhos[i - n_esq - 1];
+            vec[i].filho_dir = f_dir->filhos[i - n_esq - 1];
         }
     }
     if(!eh_folha){ // Se não é raíz salva o filho mais a direita do nó à direita
-        vec[total].filho = f_dir->filhos[n_dir];
+        vec[total].filho_dir = f_dir->filhos[n_dir];
     }
 
     *tam = total;

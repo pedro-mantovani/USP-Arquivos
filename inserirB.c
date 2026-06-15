@@ -34,19 +34,19 @@ int rrn_insercao(FILE* fp_arvore, Arv_head* head) {
 Função para realizar a inserção da chave 
 caso o nó encontrado esteja com espaço disponível
 */
-void insercao_simples(Arv_no* no, int i, int p_chave, int p_offset, int p_filho_dir) {
+void insercao_simples(Arv_no* no, int i, Chave chave_inser) {
 
     // Deslocamento para a direita para abrir espaço ordenado
     shift(no->chaves, i, no->nroChaves, false);
     shift(no->offsets, i, no->nroChaves, false);
     if(no->tipoNo != -1){
         shift(no->filhos, i, no->nroChaves + 1, false);
-        no->filhos[i+1] = p_filho_dir;
+        no->filhos[i+1] = chave_inser.filho_dir;
     }
 
     // Insere a chave promovida no espaço aberto
-    no->chaves[i] = p_chave;
-    no->offsets[i] = p_offset;
+    no->chaves[i] = chave_inser.chave;
+    no->offsets[i] = chave_inser.offset;
     no->nroChaves++;
 }
 
@@ -55,41 +55,44 @@ Struct de retorno da inserção
 */
 typedef struct{
     bool promocao; // Booleano indicando se ocorreu uma promocao
-    Chave* promovida; // Chave promovida
+    bool inseriu; // Booleano indicando se ocorreu a insercao
+    Chave promovida; // Chave promovida
 } resultadoInsercao;
 
 
 /*
 Recebe o nó cheio e a chave que quer ser inserida
-Realiza o split, 
-
-Realiza o particionamento (split), caso o nó encontrado para a
-chave não tenha espaço disponível
+Realiza o split, deixando:
+Metade das chaves na direita
+O nó central é promovido (em caso de número par de chaves o mais à direita)
+O restante fica em um novo nó criado à direita daquele passado como parâmetro
 
 Cria vetores temporários, instancia o novo nó, limpa a memória 
 e faz a reconstrução dos ponteiros
-*/
-void split(FILE* fp, Arv_head* head, Arv_no* no, int rrn_atual, int i, 
-                     int p_chave, int p_offset, int p_filho_dir,
-                     int* chave_promovida, int* offset_promovido, int* filho_dir_promovido) {
-    
-    int temp_chaves[4], temp_offsets[4], temp_filhos[5];
 
+Retorna a sctruct de resultado da inserção, indicando:
+Se teve promoção
+Se teve insersão
+A chave que foi promovida
+*/
+resultadoInsercao split(FILE* fp, Arv_head* head, Arv_no* no, int rrn_atual, int i, Chave nova_chave) {
+    
+    int temp_chaves[nro_chaves+1], temp_offsets[nro_chaves+1], temp_filhos[nro_chaves+2];
     // Extrai as chaves combinando as antigas e a nova promovida
     int idx = 0;
-    for (int j = 0; j < 3; j++) {
+    for (int j = 0; j < nro_chaves; j++) {
         if (j == i) { 
-            temp_chaves[idx] = p_chave; 
-            temp_offsets[idx] = p_offset; 
+            temp_chaves[idx] = nova_chave.chave; 
+            temp_offsets[idx] = nova_chave.offset; 
             idx++; 
         }
         temp_chaves[idx] = no->chaves[j]; 
         temp_offsets[idx] = no->offsets[j]; 
         idx++;
     }
-    if (i == 3) { 
-        temp_chaves[3] = p_chave; 
-        temp_offsets[3] = p_offset; 
+    if (i == nro_chaves) { 
+        temp_chaves[nro_chaves] = nova_chave.chave; 
+        temp_offsets[nro_chaves] = nova_chave.offset; 
     }
 
     // Reconstrução dos filhos
@@ -97,10 +100,13 @@ void split(FILE* fp, Arv_head* head, Arv_no* no, int rrn_atual, int i,
     for (int j = 0; j < pos_filho; j++) {
         temp_filhos[j] = no->filhos[j];
     }
-    temp_filhos[pos_filho] = p_filho_dir;
-    for (int j = pos_filho; j < 4; j++) {
+    temp_filhos[pos_filho] = nova_chave.filho_dir;
+    for (int j = pos_filho; j < nro_chaves + 1; j++) {
         temp_filhos[j + 1] = no->filhos[j];
     }
+
+    // Define o índice da chave que será promovida
+    int i_promovido = (nro_chaves+1)/2;
 
     // Particionamento: criação do nó à direita (já inicializado)
     Arv_no* novo_no = criar_arv_no();
@@ -113,41 +119,46 @@ void split(FILE* fp, Arv_head* head, Arv_no* no, int rrn_atual, int i,
     
     int novo_rrn = rrn_insercao(fp, head);
 
-    // Nó da esquerda fica com as 2 primeiras chaves
-    no->nroChaves = 2;
-    for (int j = 0; j < 2; j++) {
+    // Nó da esquerda fica com as chaves anteriores à promovida
+    no->nroChaves = i_promovido;
+    for (int j = 0; j < i_promovido; j++) {
         no->chaves[j] = temp_chaves[j];
         no->offsets[j] = temp_offsets[j];
         no->filhos[j] = temp_filhos[j];
     }
-    no->filhos[2] = temp_filhos[2];
+    no->filhos[i_promovido] = temp_filhos[i_promovido];
 
     // Limpeza de lixo de memória do nó da esquerda
-    for (int j = 2; j < nro_chaves; j++) {
+    for (int j = i_promovido; j < nro_chaves; j++) {
         no->chaves[j] = -1; 
         no->offsets[j] = -1;
-    }
-    for (int j = 3; j <= nro_chaves; j++) { 
-        no->filhos[j] = -1; 
+        no->filhos[j+1] = -1;
     }
 
-    // Nó da direita fica com a última chave
-    novo_no->nroChaves = 1;
-    novo_no->chaves[0] = temp_chaves[3];
-    novo_no->offsets[0] = temp_offsets[3];
-    novo_no->filhos[0] = temp_filhos[3];
-    novo_no->filhos[1] = temp_filhos[4];
+    // Nó da direita fica com as chaves posteriores à promovida
+    int chaves_dir = nro_chaves-i_promovido;
+    novo_no->nroChaves = chaves_dir;
+    for (int i = 0, j = i_promovido + 1; i < chaves_dir; i++, j++) {
+        novo_no->chaves[i] = temp_chaves[j];
+        novo_no->offsets[i] = temp_offsets[j];
+        novo_no->filhos[i] = temp_filhos[j];
+    }
+    novo_no->filhos[chaves_dir] = temp_filhos[i_promovido + 1 + chaves_dir];
 
-    // A chave promovida ao pai é a chave 3 (índice 2)
-    *chave_promovida = temp_chaves[2];
-    *offset_promovido = temp_offsets[2];
-    *filho_dir_promovido = novo_rrn;
-
+    // Salva a chave promovida
+    resultadoInsercao res;
+    res.promovida.chave = temp_chaves[i_promovido];
+    res.promovida.offset = temp_offsets[i_promovido];
+    res.promovida.filho_dir = novo_rrn;
+    res.promocao = true;
+    res.inseriu = true;
+    
     // Escreve os dois nós resultantes no disco
     arv_no_to_bin(fp, no, rrn_atual);
     arv_no_to_bin(fp, novo_no, novo_rrn);
-
     arv_no_free(&novo_no); // Liberar a memória RAM da struct do novo nó
+
+    return res;
 }
 
 /*
@@ -156,22 +167,30 @@ Função auxiliar recursiva para inserção.
 Retorna 1 se houve promoção (uma nova chave precisa ser inserida no nó pai).
 Retorna 0 se a inserção foi resolvida de forma segura no nível atual ou inferior.
 */
-int arv_inserir_recursivo(FILE* fp, Arv_head* head, int rrn_atual, int chave_inserir, int offset_inserir, 
-                            int* chave_promovida, int* offset_promovido, int* filho_dir_promovido, int* inserido) {
+resultadoInsercao arv_inserir_recursivo(FILE* fp, Arv_head* head, int rrn_atual, int chave_inserir, int offset_inserir) {
+
+    // Inicializa o resultado da inserção
+    resultadoInsercao res;
+
 
     // POO: Chamada de recursão a toa, o correto seria verificar se o nó atual é folha
     // Condição de base: chegou abaixo de um nó folha
     if (rrn_atual == -1) {              // A chave deve ser "promovida" para o nó folha que chamou esta recursão
-        *chave_promovida = chave_inserir;
-        *offset_promovido = offset_inserir;
-        *filho_dir_promovido = -1;      // Como é uma folha, não há nós filhos novos
-        *inserido = 1;                  //A chave é nova portanto foi inserida de fato
-        return 1;
+        res.promovida.chave = chave_inserir;
+        res.promovida.offset = offset_inserir;
+        res.promovida.filho_dir = -1;      // Como é uma folha, não há nós filhos novos
+        res.promocao = true;                  //A chave é nova portanto foi inserida de fato
+        res.inseriu = true;
+        return res;
     }
 
     // Carrega o nó atual para a RAM
     Arv_no* no = bin_to_arv_no(fp, rrn_atual);
-    if (no == NULL) return 0; 
+    if (no == NULL){
+        res.inseriu = false;
+        res.promocao = false;
+        return res; 
+    }
 
     // Busca sequencial dentro do nó para encontrar a posição da chave
     int i = 0;
@@ -182,40 +201,43 @@ int arv_inserir_recursivo(FILE* fp, Arv_head* head, int rrn_atual, int chave_ins
     // Prevenção de chaves duplicadas
     if (i < no->nroChaves && chave_inserir == no->chaves[i]) {
         arv_no_free(&no);
-        *inserido = 0;
-        return 0;                   // A chave já existe, encerra a inserção
+        res.inseriu = false;
+        res.promocao = false;
+        return res;                   // A chave já existe, encerra a inserção
     }
 
     // Chamada recursiva descendo para o filho correto
-    int p_chave, p_offset, p_filho_dir;
-    int promoveu = arv_inserir_recursivo(fp, head, no->filhos[i], chave_inserir, offset_inserir, &p_chave, &p_offset, &p_filho_dir, inserido);
+    res = arv_inserir_recursivo(fp, head, no->filhos[i], chave_inserir, offset_inserir);
 
     // Se falhou na inserção embaixo (chave duplicada), aborta aqui também
-    if (*inserido == 0) {
+    if (res.inseriu == false) {
         arv_no_free(&no);
-        return 0;
+        return res;
     }
 
     // Se o filho absorveu a chave sem dar Overflow, encerra
-    if (!promoveu) {
+    if (res.promocao == false) {
         arv_no_free(&no);
-        return 0; 
+        res.promocao = false;
+        res.inseriu = true;
+        return res; 
     }
 
     // O nó atual tem espaço (nroChaves < 3)
     if (no->nroChaves < nro_chaves) {
-        insercao_simples(no, i, p_chave, p_offset, p_filho_dir);
+        insercao_simples(no, i, res.promovida);
         arv_no_to_bin(fp, no, rrn_atual);
         arv_no_free(&no);
-        return 0;
+        res.inseriu = true;
+        res.promocao = false;
+        return res;
     }
 
     // Nó atual está cheio (nroChaves == 3), tem que dar split 
-    split(fp, head, no, rrn_atual, i, p_chave, p_offset, p_filho_dir, 
-                    chave_promovida, offset_promovido, filho_dir_promovido);
+    res = split(fp, head, no, rrn_atual, i, res.promovida);
     
     arv_no_free(&no);
-    return 1;   // Sinaliza a recursão acima que ocorreu uma promoção
+    return res;
 }
 
 /*
@@ -247,29 +269,27 @@ bool arv_inserir_chave(FILE* fp_arvore, Arv_head* head, int chave, int offset_da
     }
 
     // Caso a árvore já exista, começa a inserção recursiva
-    int p_chave, p_offset, p_filho_dir;
-    int inserido = 0;
-    int overflow = arv_inserir_recursivo(fp_arvore, head, head->noRaiz, chave, offset_dados, &p_chave, &p_offset, &p_filho_dir, &inserido);
+    resultadoInsercao res = arv_inserir_recursivo(fp_arvore, head, head->noRaiz, chave, offset_dados);
 
     // Se a recursão disse que a chave é duplicada, encerra e retorna falso
-    if (inserido == 0) {
+    if (res.inseriu == false) {
         return 0; 
     }
 
     // Se o retorno da raiz for 1, significa que o nó principal quebrou ao meio.
     // A árvore deve cresce em altura, criando uma nova raiz.
-    if (overflow) {
+    if (res.promocao == true) {
         Arv_no* nova_raiz = criar_arv_no();
         nova_raiz->tipoNo = 0; 
         nova_raiz->nroChaves = 1;
         
         // A nova raiz recebe a chave promovida
-        nova_raiz->chaves[0] = p_chave;
-        nova_raiz->offsets[0] = p_offset;
+        nova_raiz->chaves[0] = res.promovida.chave;
+        nova_raiz->offsets[0] = res.promovida.offset;
         
         // Conecta as duas metades que sofreram o split
         nova_raiz->filhos[0] = head->noRaiz;     // O filho esquerdo é a antiga raiz
-        nova_raiz->filhos[1] = p_filho_dir;      // O filho direito é o nó gerado pela quebra
+        nova_raiz->filhos[1] = res.promovida.filho_dir;      // O filho direito é o nó gerado pela quebra
 
         int novo_rrn_raiz = rrn_insercao(fp_arvore, head);
         head->noRaiz = novo_rrn_raiz;

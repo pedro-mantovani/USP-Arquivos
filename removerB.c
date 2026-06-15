@@ -71,10 +71,10 @@ void redistribuicao(FILE* fp_arvore, Arv_no* pai, int i_pai, Arv_no* f_esq, Arv_
         temp->chaves[i] = vec[i].chave;
         temp->offsets[i] = vec[i].offset;
         if(!eh_folha)
-            temp->filhos[i] = vec[i].filho;
+            temp->filhos[i] = vec[i].filho_dir;
     }
     if(!eh_folha)
-        temp->filhos[tam_esq] = vec[tam_esq].filho;
+        temp->filhos[tam_esq] = vec[tam_esq].filho_dir;
     temp->tipoNo = f_esq->tipoNo;
     temp->nroChaves = tam_esq;
     
@@ -98,10 +98,10 @@ void redistribuicao(FILE* fp_arvore, Arv_no* pai, int i_pai, Arv_no* f_esq, Arv_
         temp->chaves[j] = vec[i].chave;
         temp->offsets[j] = vec[i].offset;
         if(!eh_folha)
-            temp->filhos[j] = vec[i].filho;
+            temp->filhos[j] = vec[i].filho_dir;
     }
     if(!eh_folha)
-        temp->filhos[tam - tam_esq -1] = vec[tam].filho;
+        temp->filhos[tam - tam_esq -1] = vec[tam].filho_dir;
     temp->nroChaves = tam - tam_esq - 1;
     temp->tipoNo = f_dir->tipoNo;
 
@@ -137,10 +137,10 @@ void merge(FILE* fp_arvore, Arv_head* head, Arv_no* pai, int i_pai, Arv_no* f_es
         temp->chaves[i] = vec[i].chave;
         temp->offsets[i] = vec[i].offset;
         if(!eh_folha)
-            temp->filhos[i] = vec[i].filho;
+            temp->filhos[i] = vec[i].filho_dir;
     }
     if(!eh_folha)
-        temp->filhos[tam] = vec[tam].filho;
+        temp->filhos[tam] = vec[tam].filho_dir;
     temp->nroChaves = tam;
     temp->tipoNo = f_esq->tipoNo;
 
