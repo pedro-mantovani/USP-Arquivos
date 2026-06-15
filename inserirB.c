@@ -2,6 +2,7 @@
 #include "utilitarias.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /*
@@ -64,45 +65,44 @@ typedef struct{
 Recebe o nó cheio e a chave que quer ser inserida
 Realiza o split, deixando:
 Metade das chaves na direita
-O nó central é promovido (em caso de número par de chaves o mais à direita)
+O nó central é promovido (em caso de número par de chaves o primeiro da direita)
 O restante fica em um novo nó criado à direita daquele passado como parâmetro
 
-Cria vetores temporários, instancia o novo nó, limpa a memória 
-e faz a reconstrução dos ponteiros
-
-Retorna a sctruct de resultado da inserção, indicando:
-Se teve promoção
-Se teve insersão
+Retorna a sctruct de resultado da inserção, sinalizando que:
+Houve promoção
+Houve insersão
 A chave que foi promovida
 */
 resultadoInsercao split(FILE* fp, Arv_head* head, Arv_no* no, int rrn_atual, int i, Chave nova_chave) {
+
+    // Cria um vetor auxiliar de chaves com tamanho suficiente para alocar as chaves e seus filhos
+    Chave* vec_temp = malloc((nro_chaves+2)*sizeof(Chave));
     
-    int temp_chaves[nro_chaves+1], temp_offsets[nro_chaves+1], temp_filhos[nro_chaves+2];
     // Extrai as chaves combinando as antigas e a nova promovida
     int idx = 0;
     for (int j = 0; j < nro_chaves; j++) {
         if (j == i) { 
-            temp_chaves[idx] = nova_chave.chave; 
-            temp_offsets[idx] = nova_chave.offset; 
+            vec_temp[idx].chave = nova_chave.chave; 
+            vec_temp[idx].offset = nova_chave.offset; 
             idx++; 
         }
-        temp_chaves[idx] = no->chaves[j]; 
-        temp_offsets[idx] = no->offsets[j]; 
+        vec_temp[idx].chave = no->chaves[j]; 
+        vec_temp[idx].offset = no->offsets[j]; 
         idx++;
     }
     if (i == nro_chaves) { 
-        temp_chaves[nro_chaves] = nova_chave.chave; 
-        temp_offsets[nro_chaves] = nova_chave.offset; 
+        vec_temp[nro_chaves].chave = nova_chave.chave; 
+        vec_temp[nro_chaves].offset = nova_chave.offset; 
     }
 
     // Reconstrução dos filhos
     int pos_filho = i + 1;
     for (int j = 0; j < pos_filho; j++) {
-        temp_filhos[j] = no->filhos[j];
+        vec_temp[j].filho_dir = no->filhos[j];
     }
-    temp_filhos[pos_filho] = nova_chave.filho_dir;
+    vec_temp[pos_filho].filho_dir = nova_chave.filho_dir;
     for (int j = pos_filho; j < nro_chaves + 1; j++) {
-        temp_filhos[j + 1] = no->filhos[j];
+        vec_temp[j+1].filho_dir = no->filhos[j];
     }
 
     // Define o índice da chave que será promovida
@@ -122,11 +122,11 @@ resultadoInsercao split(FILE* fp, Arv_head* head, Arv_no* no, int rrn_atual, int
     // Nó da esquerda fica com as chaves anteriores à promovida
     no->nroChaves = i_promovido;
     for (int j = 0; j < i_promovido; j++) {
-        no->chaves[j] = temp_chaves[j];
-        no->offsets[j] = temp_offsets[j];
-        no->filhos[j] = temp_filhos[j];
+        no->chaves[j] = vec_temp[j].chave;
+        no->offsets[j] = vec_temp[j].offset;
+        no->filhos[j] = vec_temp[j].filho_dir;
     }
-    no->filhos[i_promovido] = temp_filhos[i_promovido];
+    no->filhos[i_promovido] = vec_temp[i_promovido].filho_dir;
 
     // Limpeza de lixo de memória do nó da esquerda
     for (int j = i_promovido; j < nro_chaves; j++) {
@@ -139,16 +139,16 @@ resultadoInsercao split(FILE* fp, Arv_head* head, Arv_no* no, int rrn_atual, int
     int chaves_dir = nro_chaves-i_promovido;
     novo_no->nroChaves = chaves_dir;
     for (int i = 0, j = i_promovido + 1; i < chaves_dir; i++, j++) {
-        novo_no->chaves[i] = temp_chaves[j];
-        novo_no->offsets[i] = temp_offsets[j];
-        novo_no->filhos[i] = temp_filhos[j];
+        novo_no->chaves[i] = vec_temp[j].chave;
+        novo_no->offsets[i] = vec_temp[j].offset;
+        novo_no->filhos[i] = vec_temp[j].filho_dir;
     }
-    novo_no->filhos[chaves_dir] = temp_filhos[i_promovido + 1 + chaves_dir];
+    novo_no->filhos[chaves_dir] = vec_temp[i_promovido + 1 + chaves_dir].filho_dir;
 
     // Salva a chave promovida
     resultadoInsercao res;
-    res.promovida.chave = temp_chaves[i_promovido];
-    res.promovida.offset = temp_offsets[i_promovido];
+    res.promovida.chave = vec_temp[i_promovido].chave;
+    res.promovida.offset = vec_temp[i_promovido].offset;
     res.promovida.filho_dir = novo_rrn;
     res.promocao = true;
     res.inseriu = true;
@@ -156,7 +156,8 @@ resultadoInsercao split(FILE* fp, Arv_head* head, Arv_no* no, int rrn_atual, int
     // Escreve os dois nós resultantes no disco
     arv_no_to_bin(fp, no, rrn_atual);
     arv_no_to_bin(fp, novo_no, novo_rrn);
-    arv_no_free(&novo_no); // Liberar a memória RAM da struct do novo nó
+    arv_no_free(&novo_no); // Libera a memória RAM da struct do novo nó
+    free(vec_temp);
 
     return res;
 }
@@ -164,16 +165,20 @@ resultadoInsercao split(FILE* fp, Arv_head* head, Arv_no* no, int rrn_atual, int
 /*
 Função auxiliar recursiva para inserção.
 
-Retorna 1 se houve promoção (uma nova chave precisa ser inserida no nó pai).
-Retorna 0 se a inserção foi resolvida de forma segura no nível atual ou inferior.
+Retorna a sctruct de resultado da inserção, indicando:
+Se teve promoção
+Se teve insersão
+A chave que foi promovida
+
+Quando a chave é inserida em um nó cheio acontece o split
+em que a chave promovida fica na struct
+Assim o pai cuida de uma possível superlotação no nó e pode propagar splits
 */
 resultadoInsercao arv_inserir_recursivo(FILE* fp, Arv_head* head, int rrn_atual, int chave_inserir, int offset_inserir) {
 
     // Inicializa o resultado da inserção
     resultadoInsercao res;
 
-
-    // POO: Chamada de recursão a toa, o correto seria verificar se o nó atual é folha
     // Condição de base: chegou abaixo de um nó folha
     if (rrn_atual == -1) {              // A chave deve ser "promovida" para o nó folha que chamou esta recursão
         res.promovida.chave = chave_inserir;
@@ -192,12 +197,9 @@ resultadoInsercao arv_inserir_recursivo(FILE* fp, Arv_head* head, int rrn_atual,
         return res; 
     }
 
-    // Busca sequencial dentro do nó para encontrar a posição da chave
-    int i = 0;
-    while (i < no->nroChaves && chave_inserir > no->chaves[i]) {
-        i++;
-    }
-
+    // Busca binária dentro do nó para encontrar a posição da chave
+    int i = busca_binaria(no->chaves, no->nroChaves, chave_inserir);
+    
     // Prevenção de chaves duplicadas
     if (i < no->nroChaves && chave_inserir == no->chaves[i]) {
         arv_no_free(&no);
@@ -223,7 +225,7 @@ resultadoInsercao arv_inserir_recursivo(FILE* fp, Arv_head* head, int rrn_atual,
         return res; 
     }
 
-    // O nó atual tem espaço (nroChaves < 3)
+    // O nó atual tem espaço
     if (no->nroChaves < nro_chaves) {
         insercao_simples(no, i, res.promovida);
         arv_no_to_bin(fp, no, rrn_atual);
@@ -233,7 +235,7 @@ resultadoInsercao arv_inserir_recursivo(FILE* fp, Arv_head* head, int rrn_atual,
         return res;
     }
 
-    // Nó atual está cheio (nroChaves == 3), tem que dar split 
+    // Nó atual está cheio, tem que dar split 
     res = split(fp, head, no, rrn_atual, i, res.promovida);
     
     arv_no_free(&no);
@@ -243,8 +245,16 @@ resultadoInsercao arv_inserir_recursivo(FILE* fp, Arv_head* head, int rrn_atual,
 /*
 Função pública para inserir na Árvore-B
 
-faz a leitura do cabeçalho e o crescimento da árvore
-cria uma nova raiz caso a raiz atual sofra overflow
+Faz as atualizações de cabeçalho em RAM, evitando escritas em disco desnecessárias
+
+Parâmetros:
+Ponteiro do arquivo da árvore
+Cabeçalho da árvore
+Chave a ser inserida
+Offset em que a chave será inserida
+
+Retorno:
+Booleano indicando se a inserção foi bem sucedida
 */
 bool arv_inserir_chave(FILE* fp_arvore, Arv_head* head, int chave, int offset_dados) {
     if (fp_arvore == NULL) return 0;
@@ -276,8 +286,7 @@ bool arv_inserir_chave(FILE* fp_arvore, Arv_head* head, int chave, int offset_da
         return 0; 
     }
 
-    // Se o retorno da raiz for 1, significa que o nó principal quebrou ao meio.
-    // A árvore deve cresce em altura, criando uma nova raiz.
+    // Se aconteceu uma promoção na raíz a árvore cresce em altura, criando uma nova raiz
     if (res.promocao == true) {
         Arv_no* nova_raiz = criar_arv_no();
         nova_raiz->tipoNo = 0; 

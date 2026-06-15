@@ -7,7 +7,8 @@
 
 /* 
 A função criar_arvore
-POO: COLOCAR A EXPLICAÇÃO BEM BONITA DEPOIS
+
+Percorre todo o arquivo de registros e para cada um faz uma inserção na árvore B
 */
 
 void criar_arvore(char* arquivo_dados, char* arquivo_arvore){

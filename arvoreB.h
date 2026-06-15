@@ -92,7 +92,6 @@ Para facilitar a correção, a implementação foi separada em 4 arquivos:
     void arv_head_free(Arv_head** head);
 
     // Funções utilitárias
-    void shift(int vetor[], int pos, int tam, bool back); 
     Chave* vectorize(Arv_no* pai, int i_pai, Arv_no* f_esq, Arv_no* f_dir, int* tam, bool eh_folha);
 
 #endif

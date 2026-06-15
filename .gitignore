@@ -9,3 +9,4 @@ fornecidas.c
 *.zip
 *.py
 *.png
+./tests

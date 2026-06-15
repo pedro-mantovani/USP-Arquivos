@@ -1,4 +1,5 @@
 #include "arvoreB.h"
+#include "utilitarias.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -23,11 +24,8 @@ int arv_busca_recursiva(FILE* fp_arvore, int rrn_atual, int chave_buscada) {
         return -1;      // Falha na leitura ou nó inexistente
     }
 
-    // Busca sequencial dentro do nó para encontrar a posição da chave
-    int i = 0;
-    while (i < no->nroChaves && chave_buscada > no->chaves[i]) {
-        i++;
-    }
+    // Busca binária dentro do nó para encontrar a posição da chave
+    int i = busca_binaria(no->chaves, no->nroChaves, chave_buscada);
 
     // Condição de parada: Encontrou a chave no nó atual
     if (i < no->nroChaves && chave_buscada == no->chaves[i]) {

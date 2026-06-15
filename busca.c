@@ -49,7 +49,6 @@ void apagar_campos(Campos **c) {
     *c = NULL;
 }
 
-// POO: Arrumar essa gambiarra
 // Lê os n campos da entrada padrão e processa os valores
 // Se um dos campos for o codEstação retorna 1, se não retorna 0
 int preencher_campos(Campos *b) {

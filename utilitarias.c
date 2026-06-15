@@ -145,37 +145,58 @@ int scan_int(){
 }
 
 /*
-Função padrão de busca binária
+Função de busca binária para determinar a posição de uma chave em um vetor ordenado
+
+Parâmetros:
+- chaves: vetor ordenado de inteiros
+- n: quantidade de elementos no vetor
+- chave: valor a ser localizado
+
+Retorno:
+- Índice do primeiro elemento maior ou igual à chave
+- Se todos os elementos forem menores que a chave, retorna n (posição após o último elemento)
+
+O valor retornado corresponde à posição em que a chave deve ser inserida para manter o vetor ordenado
+*/
+int busca_binaria(int chaves[], int n, int chave) {
+    int inicio = 0;
+    int fim = n;
+
+    while (inicio < fim) {
+        int meio = inicio + (fim - inicio) / 2;
+
+        if (chaves[meio] < chave)
+            inicio = meio + 1;
+        else
+            fim = meio;
+    }
+
+    return inicio;
+}
+
+/*
+Função para shiftar um vetor uma posição para tráz a partir do índice i
 
 Parâmetros:
 Vetor
-Tamanho
-Valor buscado
-
-Retorno:
-Índice do vetor que contém o valor buscado
--1 caso não encontre nada
+Posição a partir da qual o vetor será deslocado
+Tamanho total do vetor
+Booleano indicando se é um deslocamento para frente ou para trás
+Quando true desloca todos os elementos a parir da posição indicada uma posição para trás
+Quando false desloca todos os elementos a partir da posição indicada uma posição para frente
 */
-int busca_binaria(int vetor[], int tamanho, int alvo) {
-    int inicio = 0;
-    int fim = tamanho - 1;
-    
-    while (inicio <= fim) {
-        int meio = inicio + (fim - inicio) / 2;
-        
-        // Verifica se o alvo está no meio
-        if (vetor[meio] == alvo)
-            return meio;
-        
-        // Se o alvo for maior, ignora a metade esquerda
-        if (vetor[meio] < alvo)
-            inicio = meio + 1;
-        
-        // Se o alvo for menor, ignora a metade direita
-        else
-            fim = meio - 1;
+void shift(int vetor[], int pos, int tam, bool back){
+    // Percorre da posição atual até o final do vetor 
+    if(back){
+        for(int i = pos; i < tam - 1; i++){
+            vetor[i] = vetor[i+1];
+        }    
+    }else{
+        for(int i = tam; i > pos; i--){
+            vetor[i] = vetor[i-1];
+        }
     }
     
-    // Alvo não encontrado
-    return -1;
+    // Coloca o último elemento como o valor padrão
+    if(back) vetor[tam-1] = -1;   
 }

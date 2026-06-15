@@ -3,6 +3,7 @@
 
     #include "registro.h"
     #include "header.h"
+    #include <stdbool.h>
 
     // Funções fornecidas
     void BinarioNaTela(char *arquivo);
@@ -16,7 +17,8 @@
     void criar_par(Registro* reg, char* pair);
     int verificarStatusArquivo(FILE* fp);
     int scan_int();
-    int busca_binaria(int vetor[], int tamanho, int alvo);
     void atualizar_metricas_cabecalho(FILE* fp_dados, Header* h);
+    int busca_binaria(int vetor[], int tamanho, int alvo);
+    void shift(int vetor[], int pos, int tam, bool back); 
 
 #endif

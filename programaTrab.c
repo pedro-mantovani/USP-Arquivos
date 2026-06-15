@@ -7,70 +7,88 @@ Beatriz Aredes Texeira - N° USP: 16856317
 Pedro Otavio Mantovani - N° USP: 16896987
 */
 
-int main(){
+typedef enum {
+    LEITURA_CSV = 1,
+    MOSTRAR_TODOS,
+    BUSCA_PARAMETRIZADA,
+    REMOVER_REGISTROS,
+    INSERIR_REGISTROS,
+    ATUALIZAR_REGISTROS,
+    CRIAR_ARVORE_B,
+    BUSCA_COM_ARVORE,
+    INSERIR_COM_ARVORE,
+    REMOVER_COM_ARVORE
+} Opcao;
+
+int main() {
     int option;
     scanf("%d", &option);
+
     char arquivo_dados[100];
     char arquivo_arvore[100];
-    switch (option){
-    case 1: // Leitura de registros csv e escrita em binário
+
+    switch ((Opcao) option) {
+
+    case LEITURA_CSV: {
         char arquivo_csv[100];
         scanf("%s", arquivo_csv);
         scanf("%s", arquivo_dados);
         ler_csv(arquivo_csv, arquivo_dados);
         break;
+    }
 
-    case 2: // Impressão de todos os registros do arquivo binário
+    case MOSTRAR_TODOS:
         scanf("%s", arquivo_dados);
         mostrar_todos(arquivo_dados);
         break;
 
-    case 3: // Recuperacao de registros do arquivo binário por campo 
-        scanf("%s", arquivo_dados); 
+    case BUSCA_PARAMETRIZADA:
+        scanf("%s", arquivo_dados);
         busca_parametrizada(arquivo_dados);
         break;
 
-    case 4: // Função de de remover registros que atendem a determinados critérios de busca
+    case REMOVER_REGISTROS:
         scanf("%s", arquivo_dados);
         remover(arquivo_dados);
         break;
 
-    case 5: // Insercao de novos registros
+    case INSERIR_REGISTROS:
         scanf("%s", arquivo_dados);
         inserir(arquivo_dados);
         break;
 
-    case 6: // Atualizacao de registros
+    case ATUALIZAR_REGISTROS:
         scanf("%s", arquivo_dados);
         atualizar(arquivo_dados);
-        break;  
-    
-    case 7: // Escrita da árvore B com base em um arquivo binário
+        break;
+
+    case CRIAR_ARVORE_B:
         scanf("%s", arquivo_dados);
         scanf("%s", arquivo_arvore);
         criar_arvore(arquivo_dados, arquivo_arvore);
         break;
 
-    case 8: // Recuperacao de registros do arquivo binário por campo 
-        scanf("%s", arquivo_dados); 
-        scanf("%s", arquivo_arvore); 
+    case BUSCA_COM_ARVORE:
+        scanf("%s", arquivo_dados);
+        scanf("%s", arquivo_arvore);
         busca_parametrizada_nova(arquivo_dados, arquivo_arvore);
         break;
 
-    case 9: // Inserção de novos registros
-        scanf("%s", arquivo_dados); 
-        scanf("%s", arquivo_arvore); 
+    case INSERIR_COM_ARVORE:
+        scanf("%s", arquivo_dados);
+        scanf("%s", arquivo_arvore);
         inserir_nova(arquivo_dados, arquivo_arvore);
         break;
 
-    case 10: // Remoção registros
-        scanf("%s", arquivo_dados); 
-        scanf("%s", arquivo_arvore); 
+    case REMOVER_COM_ARVORE:
+        scanf("%s", arquivo_dados);
+        scanf("%s", arquivo_arvore);
         remover_novo(arquivo_dados, arquivo_arvore);
         break;
 
     default:
         break;
     }
+
     return 0;
 }
