@@ -164,6 +164,15 @@ void print_reg(Registro* reg){
     printf("\n");
 }
 
+// Função para printar os campos de um par (conforme na especificação da funcionalidade 11, 12, 14)
+void print_par_reg(Registro* reg1, Registro* reg2){
+    printf("%d ",reg1->codEstacao);
+    printf("%s ", reg1->nomeEstacao);
+    printf("%s ", reg1->nomeLinha);
+    printf("%d ", reg1->codProxEstacao);
+    printf("%s\n", reg2->nomeEstacao);
+}
+
 // Função para liberar a memória alocada para um registro
 void reg_free(Registro** reg){
     if(*reg == NULL) return;

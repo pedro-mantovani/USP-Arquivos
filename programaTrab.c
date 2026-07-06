@@ -17,7 +17,11 @@ typedef enum {
     CRIAR_ARVORE_B,
     BUSCA_COM_ARVORE,
     INSERIR_COM_ARVORE,
-    REMOVER_COM_ARVORE
+    REMOVER_COM_ARVORE,
+    JUNCAO_LOOP_ANINHADO,
+    JUNCAO_LOOP_COM_INDICE,
+    ORDENAR_EM_RAM,
+    JUNCAO_INTERCALACAO
 } Opcao;
 
 int main() {
@@ -84,6 +88,22 @@ int main() {
         scanf("%s", arquivo_dados);
         scanf("%s", arquivo_arvore);
         remover_novo(arquivo_dados, arquivo_arvore);
+        break;
+
+    case JUNCAO_LOOP_ANINHADO:
+        junc_loop();
+        break;
+    
+    case JUNCAO_LOOP_COM_INDICE:
+        junc_idx();
+        break;
+    
+    case ORDENAR_EM_RAM:
+        ordenar_funcionalidade();
+        break;
+
+    case JUNCAO_INTERCALACAO:
+        juncao_intercalacao();
         break;
 
     default:

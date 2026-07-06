@@ -11,5 +11,9 @@
     void remover_novo(char* nome_arquivo, char* nome_arquivo_arv);
     void atualizar(char* nome_arquivo);
     void criar_arvore(char* arquivo_dados, char* arquivo_arvore);
+    void junc_loop(void);
+    void junc_idx(void);
+    void ordenar_funcionalidade(void);
+    void juncao_intercalacao(void);
 
 #endif

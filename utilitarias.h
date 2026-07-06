@@ -20,5 +20,6 @@
     void atualizar_metricas_cabecalho(FILE* fp_dados, Header* h);
     int busca_binaria(int vetor[], int tamanho, int alvo);
     void shift(int vetor[], int pos, int tam, bool back); 
+    bool ordenar_arquivo(char* arquivoEntrada, char* arquivoSaida, char* campo);
 
 #endif

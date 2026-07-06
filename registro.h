@@ -13,6 +13,7 @@
     void reg_to_bin(Registro* reg, FILE* fp, long int offset);
 
     void print_reg(Registro* reg);
+    void print_par_reg(Registro* reg1, Registro* reg2);
 
     void reg_free(Registro** reg);
     
