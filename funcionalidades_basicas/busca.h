@@ -14,7 +14,8 @@
     Campos* criar_campos(int n);
     void apagar_campos(Campos **c);
 
-    int preencher_campos(Campos *c);
-    int registro_passa_filtro(Registro *reg, Campos *c);
+    //funções auxiliaredes para a estrutura de busca
+    int preencher_campos(Campos *c);                            //preenche a estrutura com os campos e valores buscado
+    int registro_passa_filtro(Registro *reg, Campos *c);        //verifica para cada campo da estrutura se o valor correspondente é o buscado
 
 #endif
